@@ -100,10 +100,13 @@ sub new {
 	$int = 0;
 	while ( defined( $self->{regexp}[$int] ) ) {
 		if ( $self->{regexp}[$int] =~ /\<HOST\>/ ) {
-			$self->{regexp}[$int] =~ s/\<HOST\>/(\[*[0-9\:\.a-z-A-Z]+\]*)/;
+			$self->{regexp}[$int] =~ s/\<HOST\>/($IPv4_re|$IPv6_re|[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
+		}elsif( $self->{regexp}[$int] =~ /\<ADDR\>/ ) {
+			$self->{regexp}[$int] =~ s/\<ADDR\>/($IPv4_re|$IPv6_re)/;
+		}elsif( $self->{regexp}[$int] =~ /\<CIDR\>/ ) {
+			$self->{regexp}[$int] =~ s/\<CIDR\>/($IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
-			#$self->{regexp}[$int] =~ s/\<IP4\>/([1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*)/;
 			$self->{regexp}[$int] =~ s/\<IP4\>/($IPv4_re)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
