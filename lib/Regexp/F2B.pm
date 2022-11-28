@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use File::Slurp;
 use Data::Dumper;
+use Regexp::IPv6 qw($IPv6_re);
+use Regexp::IPv4 qw($IPv4_re);
 
 =head1 NAME
 
@@ -101,17 +103,18 @@ sub new {
 			$self->{regexp}[$int] =~ s/\<HOST\>/(\[*[0-9\:\.a-z-A-Z]+\]*)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
-			$self->{regexp}[$int] =~ s/\<IP4\>/([1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*)/;
+			#$self->{regexp}[$int] =~ s/\<IP4\>/([1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*)/;
+			$self->{regexp}[$int] =~ s/\<IP4\>/($IPv4_re)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
-			$self->{regexp}[$int] =~ s/\<IP6\>/([\:0-9a-fA-F][\:0-9a-fA-F][\:0-9a-fA-F][\:0-9a-fA-F]*)/;
+			$self->{regexp}[$int] =~ s/\<IP6\>/($IPv6_re)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<DNS\>/ ) {
 			$self->{regexp}[$int] =~ s/\<DNS\>/([a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
 		}
 
 		if ( $self->{regexp}[$int] =~ /\<SKIPLINES\>/ ) {
-			$self->{regexp}[$int] =~ s/\<SKIPLINES\>/.*\n.*/g;
+			$self->{regexp}[$int] =~ s/\<SKIPLINES\>/.*/g;
 		}
 
 		if ( $self->{regexp}[$int] !~ /\$$/ ) {
@@ -141,8 +144,6 @@ sub proc_line {
 	chomp($line);
 
 	push( @{ $self->{log_lines} }, $line );
-	use Data::Dumper;
-	print Dumper( $self->{log_lines} );
 	if ( defined( $self->{log_lines}[ $self->{lines} ] ) ) {
 		shift( @{ $self->{log_lines} } );
 	}
@@ -150,14 +151,13 @@ sub proc_line {
 	my $joined = '';
 
 	foreach my $join_line ( @{ $self->{log_lines} } ) {
-		print $join_line. "\n";
 		$joined = $joined . $join_line . "\n";
 	}
 	chomp($joined);
 	my $joined_orig = $joined;
 
 	foreach my $regexp ( @{ $self->{regexp} } ) {
-		$joined =~ s/$regexp/$1/;
+		$joined =~ s/$regexp/$1/s;
 		if ( $joined_orig ne $joined ) {
 			return $joined;
 		}
