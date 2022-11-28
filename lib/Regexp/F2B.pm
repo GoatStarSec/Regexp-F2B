@@ -57,9 +57,6 @@ sub new{
 		if ($opts{lines} < 1) {
 			die('lines is set to "'.$opts{lines}.'" which is less than 1');
 		}
-
-		# perl indexes from 0, so subtrack 1
-		$opts{lines} = 		$opts{lines} - 1;
 	}
 
 	if (!defined($opts{regexp})) {
@@ -94,7 +91,48 @@ sub new{
 			  };
 	bless $self;
 
+	# process each regexp
+	$int=0;
+	while (defined( $self->{regexp}[$int] )) {
+		if ($self->{regexp}[$int] =~ /\<HOST\>/) {
+			$self->{regexp}[$int]=s/\<HOST\>/(\[*[0-9\:\.a-z-A-Z]+\]*)/;
+		}elsif($self->{regexp}[$int] =~ /\<IP4\>/) {
+			$self->{regexp}[$int]=s/\<IP4\>/(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}↵
+(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
+		}
+
+		$int++;
+	}
+
 	return $self;
+}
+
+=head2 proc_lines
+
+=cut
+
+sub proc_line{
+	my ( $self, $line ) = @_;
+
+	if (!defined($line)) {
+		die('No line passed');
+	}
+
+	chomp($line);
+
+	push(@{$self->{log_lines}},$line);
+
+	if (defined($self->{log_lines}[$self->{lines}])) {
+		shift(@{$self->{log_lines}});
+	}
+
+	my $joined=join("\n", @{$self->{log_lines}});
+
+	foreach my $regexp (@{$self->{regexp}}) {
+		
+	}
+
+	return 0;
 }
 
 =head1 AUTHOR
