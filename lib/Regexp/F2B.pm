@@ -105,6 +105,8 @@ sub new {
 			$self->{regexp}[$int] =~ s/\<ADDR\>/($IPv4_re|$IPv6_re)/;
 		}elsif( $self->{regexp}[$int] =~ /\<CIDR\>/ ) {
 			$self->{regexp}[$int] =~ s/\<CIDR\>/($IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
+		}elsif( $self->{regexp}[$int] =~ /\<SUBNET\>/ ) {
+			$self->{regexp}[$int] =~ s/\<SUBNET\>/($IPv4_re|$IPv6_re|$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
 		}
 		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
 			$self->{regexp}[$int] =~ s/\<IP4\>/($IPv4_re)/;
