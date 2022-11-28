@@ -43,62 +43,82 @@ Args
 
 =cut
 
-sub new{
+sub new {
 	my ( $blank, %opts ) = @_;
 
 	# make sure we have something sane for lines
-	if (!defined $opts{lines}) {
-		$opts{lines}=0;
-	}else {
-		if ($opts{lines}!~/^[0-9]+$/) {
-			die('lines is set to "'.$opts{lines}.'" which is not numeric');
+	if ( !defined $opts{lines} ) {
+		$opts{lines} = 1;
+	}
+	else {
+		if ( $opts{lines} !~ /^[0-9]+$/ ) {
+			die( 'lines is set to "' . $opts{lines} . '" which is not numeric' );
 		}
 
-		if ($opts{lines} < 1) {
-			die('lines is set to "'.$opts{lines}.'" which is less than 1');
+		if ( $opts{lines} < 1 ) {
+			die( 'lines is set to "' . $opts{lines} . '" which is less than 1' );
 		}
 	}
 
-	if (!defined($opts{regexp})) {
+	if ( !defined( $opts{regexp} ) ) {
 		die('regexp is undefined');
-	}else {
-		if (ref($opts{regexp}) ne 'ARRAY' ) {
-			die('regexp is a '.ref($opts{regexp}).' and not a array');
+	}
+	else {
+		if ( ref( $opts{regexp} ) ne 'ARRAY' ) {
+			die( 'regexp is a ' . ref( $opts{regexp} ) . ' and not a array' );
 		}
 	}
 
-	my $int=0;
-	while (defined( $opts{regexp}[$int] )) {
-		if (ref( \$opts{regexp}[$int] ) ne 'SCALAR' ) {
-			die('regexp['.$int.'] is a '.ref( \$opts{regexp}[$int] ).' and not a scalar');
-		}elsif (
-				ref( \$opts{regexp}[$int] ) ne 'SCALAR' &&
-				ref( $opts{regexp}[$int] ) ne 'SCALAR' ) {
-			die('regexp['.$int.'] is a '.ref( $opts{regexp}[$int] ).' and not a scalar');
+	my $int = 0;
+	while ( defined( $opts{regexp}[$int] ) ) {
+		if ( ref( \$opts{regexp}[$int] ) ne 'SCALAR' ) {
+			die( 'regexp[' . $int . '] is a ' . ref( \$opts{regexp}[$int] ) . ' and not a scalar' );
+		}
+		elsif (ref( \$opts{regexp}[$int] ) ne 'SCALAR'
+			&& ref( $opts{regexp}[$int] ) ne 'SCALAR' )
+		{
+			die( 'regexp[' . $int . '] is a ' . ref( $opts{regexp}[$int] ) . ' and not a scalar' );
 		}
 
-		if ( $opts{regexp}[$int] =~ /\(\?\{/) {
-			die('regexp['.$int.'], "'.$opts{regexp}[$int].'", contains "(?{"');
+		if ( $opts{regexp}[$int] =~ /\(\?\{/ ) {
+			die( 'regexp[' . $int . '], "' . $opts{regexp}[$int] . '", contains "(?{"' );
 		}
 
 		$int++;
 	}
 
-	my $self={
-			  lines=>$opts{lines},
-			  log_lines=>[],
-			  regexp=>$opts{regexp},
-			  };
+	my $self = {
+		lines     => $opts{lines},
+		log_lines => [],
+		regexp    => $opts{regexp},
+	};
 	bless $self;
 
 	# process each regexp
-	$int=0;
-	while (defined( $self->{regexp}[$int] )) {
-		if ($self->{regexp}[$int] =~ /\<HOST\>/) {
-			$self->{regexp}[$int]=s/\<HOST\>/(\[*[0-9\:\.a-z-A-Z]+\]*)/;
-		}elsif($self->{regexp}[$int] =~ /\<IP4\>/) {
-			$self->{regexp}[$int]=s/\<IP4\>/(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}↵
-(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
+	$int = 0;
+	while ( defined( $self->{regexp}[$int] ) ) {
+		if ( $self->{regexp}[$int] =~ /\<HOST\>/ ) {
+			$self->{regexp}[$int] =~ s/\<HOST\>/(\[*[0-9\:\.a-z-A-Z]+\]*)/;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
+			$self->{regexp}[$int] =~ s/\<IP4\>/([1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*\.[1-9]+[0-9]*)/;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
+			$self->{regexp}[$int] =~ s/\<IP6\>/([\:0-9a-fA-F][\:0-9a-fA-F][\:0-9a-fA-F][\:0-9a-fA-F]*)/;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<DNS\>/ ) {
+			$self->{regexp}[$int] =~ s/\<DNS\>/([a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
+		}
+
+		if ( $self->{regexp}[$int] =~ /\<SKIPLINES\>/ ) {
+			$self->{regexp}[$int] =~ s/\<SKIPLINES\>/.*\n.*/g;
+		}
+
+		if ( $self->{regexp}[$int] !~ /\$$/ ) {
+			$self->{regexp}[$int] = $self->{regexp}[$int] . '.*$';
+		}
+		if ( $self->{regexp}[$int] !~ /^\^/ ) {
+			$self->{regexp}[$int] = '^.*' . $self->{regexp}[$int];
 		}
 
 		$int++;
@@ -111,25 +131,36 @@ sub new{
 
 =cut
 
-sub proc_line{
+sub proc_line {
 	my ( $self, $line ) = @_;
 
-	if (!defined($line)) {
+	if ( !defined($line) ) {
 		die('No line passed');
 	}
 
 	chomp($line);
 
-	push(@{$self->{log_lines}},$line);
-
-	if (defined($self->{log_lines}[$self->{lines}])) {
-		shift(@{$self->{log_lines}});
+	push( @{ $self->{log_lines} }, $line );
+	use Data::Dumper;
+	print Dumper( $self->{log_lines} );
+	if ( defined( $self->{log_lines}[ $self->{lines} ] ) ) {
+		shift( @{ $self->{log_lines} } );
 	}
 
-	my $joined=join("\n", @{$self->{log_lines}});
+	my $joined = '';
 
-	foreach my $regexp (@{$self->{regexp}}) {
-		
+	foreach my $join_line ( @{ $self->{log_lines} } ) {
+		print $join_line. "\n";
+		$joined = $joined . $join_line . "\n";
+	}
+	chomp($joined);
+	my $joined_orig = $joined;
+
+	foreach my $regexp ( @{ $self->{regexp} } ) {
+		$joined =~ s/$regexp/$1/;
+		if ( $joined_orig ne $joined ) {
+			return $joined;
+		}
 	}
 
 	return 0;
@@ -188,4 +219,4 @@ This is free software, licensed under:
 
 =cut
 
-1; # End of Regexp::F2B
+1;    # End of Regexp::F2B
