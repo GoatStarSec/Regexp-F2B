@@ -223,6 +223,7 @@ sub new {
 sub new_from_f2b_filter {
 	my ( $blank, %opts ) = @_;
 
+	
 }
 
 =head2 proc_lines
