@@ -99,13 +99,16 @@ sub new {
 	}
 
 	my $self = {
-		lines          => $opts{lines},
-		log_lines      => [],
-		pre_regexp     => $opts{pre_regexp},
-		regexp         => $opts{regexp},
-		has_mlf_id     => {},
-		has_mlf_forget => {},
-		has_no_fail    => {},
+		lines                     => $opts{lines},
+		log_lines                 => [],
+		pre_regexp                => $opts{pre_regexp},
+		regexp                    => $opts{regexp},
+		regexp_has_mlf_id         => {},
+		regexp_has_mlf_forget     => {},
+		regexp_has_no_fail        => {},
+		pre_regexp_has_mlf_id     => {},
+		pre_regexp_has_mlf_forget => {},
+		pre_regexp_has_no_fail    => {},
 	};
 	bless $self;
 
@@ -160,50 +163,50 @@ sub new {
 				die(      $regexp . '['
 						. $int
 						. '] contains </F-MLFID> but no <F-MLFID>... '
-						. Dumper( $self->{regexp}[$int] ) );
-				$self->{hash_mlf_id}{$int} = 1;
+						. Dumper( $self->{$regexp}[$int] ) );
+				$self->{$regexp.'_hash_mlf_id'}{$int} = 1;
 			}
 			else {
-				$self->{hash_mlf_id}{$int} = 0;
+				$self->{$regexp.'_hash_mlf_id'}{$int} = 0;
 			}
 
 			# find F-NOFAIL lines
 			if ( $self->{$regexp}[$int] =~ /\<F-NOFAIL\>/ ) {
 				$self->{$regexp}[$int] =~ s/\<F-NOFAIL>/(/g;
 				$self->{$regexp}[$int] =~ s/\<\/F-NOFAIL\>/)/g;
-				$self->{hash_no_fail}{$int} = 1;
+				$self->{$regexp.'_hash_no_fail'}{$int} = 1;
 			}
 			elsif ( $self->{$regexp}[$int] =~ /\<\/F-NOFAIL\>/ ) {
 				die(      $regexp . '['
 						. $int
 						. '] contains </F-NOFAIL> but no <F-NOFAIL>... '
-						. Dumper( $self->{regexp}[$int] ) );
+						. Dumper( $self->{$regexp}[$int] ) );
 			}
 			else {
-				$self->{hash_no_fail}{$int} = 0;
+				$self->{$regexp.'_hash_no_fail'}{$int} = 0;
 			}
 
 			# find F-MLFFORGET lines
 			if ( $self->{$regexp}[$int] =~ /\<F-MLFFORGET\>/ ) {
 				$self->{$regexp}[$int] =~ s/\<F-MLFFORGET>//g;
 				$self->{$regexp}[$int] =~ s/\<\/F-MLFFORGET\>//g;
-				$self->{hash_mlf_forget}{$int} = 1;
+				$self->{$regexp.'_hash_mlf_forget'}{$int} = 1;
 			}
 			elsif ( $self->{regexp}[$int] =~ /\<\/F-MLFFORGET\>/ ) {
 				die(      $regexp . '['
 						. $int
 						. '] contains </F-MLFFORGET> but no <F-MLFFORGET>... '
-						. Dumper( $self->{regexp}[$int] ) );
+						. Dumper( $self->{$regexp}[$int] ) );
 			}
 			else {
-				$self->{hash_mlf_forget}{$int} = 0;
+				$self->{$regexp.'_hash_mlf_forget'}{$int} = 0;
 			}
 
 			if ( $self->{$regexp}[$int] !~ /\$$/ ) {
-				$self->{$regexp}[$int] = $self->{regexp}[$int] . '.*$';
+				$self->{$regexp}[$int] = $self->{$regexp}[$int] . '.*$';
 			}
 			if ( $self->{$regexp}[$int] !~ /^\^/ ) {
-				$self->{$regexp}[$int] = '^.*' . $self->{regexp}[$int];
+				$self->{$regexp}[$int] = '^.*' . $self->{$regexp}[$int];
 			}
 
 			$int++;
@@ -217,9 +220,8 @@ sub new {
 
 =cut
 
-sub new_from_f2b_filter{
+sub new_from_f2b_filter {
 	my ( $blank, %opts ) = @_;
-
 
 }
 
