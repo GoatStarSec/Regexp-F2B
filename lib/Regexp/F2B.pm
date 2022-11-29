@@ -223,6 +223,14 @@ sub new {
 sub new_from_f2b_filter {
 	my ( $blank, %opts ) = @_;
 
+	if (!defined($opts{file})) {
+		die('No value for file defined');
+	}
+
+	if (! -f $opts{file}) {
+		die('"'.$opts{file}.'" does not exist');
+	}
+
 	
 }
 
