@@ -1,12 +1,18 @@
-package Regexp::F2B;
+package Regexp::F2B::INI;
 
 use 5.006;
 use strict;
 use warnings;
 use File::Slurp;
-use Data::Dumper;
-use Regexp::IPv6 qw($IPv6_re);
-use Regexp::IPv4 qw($IPv4_re);
+use Exporter qw(import);
+
+my @std_export = qw(
+	parse_f2b_ini_file
+	parse_f2b_ini_string
+);
+our %EXPORT_TAGS = ( 'std' => [@std_export], );
+
+our @EXPORT = @std_export;
 
 =head1 NAME
 
@@ -22,7 +28,7 @@ our $VERSION = '0.0.1';
 
 =head1 SYNOPSIS
 
-    use Regexp::F2B;
+    use Regexp::F2B::INI;
 
 
 
@@ -32,12 +38,24 @@ our $VERSION = '0.0.1';
 
 =cut
 
-sub parse_f2b_ini_file{
+sub parse_f2b_ini_file {
+	my ( $file ) = @_;
 
+	if (!defined($file)) {
+		die('No file specified');
+	}
+
+	if (! -f $file) {
+		die("'".$file."' does not exist");
+	}
 }
 
-sub parse_f2b_ini_string{
+sub parse_f2b_ini_string {
+	my ( $raw ) = @_;
 
+	if (!defined($raw)) {
+		die('No string passed to parse');
+	}
 }
 
 =head1 AUTHOR
@@ -93,4 +111,4 @@ This is free software, licensed under:
 
 =cut
 
-1;    # End of Regexp::F2B
+1;    # End of Regexp::F2B::INI
