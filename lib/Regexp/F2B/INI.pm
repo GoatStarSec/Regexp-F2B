@@ -55,6 +55,14 @@ sub parse_f2b_ini_file {
 		die('Got undef back from read_file');
 	}
 
+	my $conf;
+	eval{
+		$conf=parse_f2b_ini_string($raw);
+	};
+	if ($@) {
+		die('parse_f2b_ini_string($raw) for the contents of "'.$file.'"... '.$@);
+	}
+
 	return parse_f2b_ini_string($raw);
 }
 
@@ -66,6 +74,49 @@ sub parse_f2b_ini_string {
 	}
 
 	my $conf={};
+
+	my $var;
+	my $sec='';
+	my $line_number=1;
+	foreach my $line (split(/\n/,$raw)) {
+		my $data=undef;
+		if ($line =~ /^[\ \t]*#/) {
+			$var=undef;
+		}elsif ($line =~ /^[\ \t]*$/) {
+			$var=undef;
+		}elsif ($line =~ /^\[[\ \t]*[A-Za-z0-9\-\_]+[\ \t]*\]/) {
+			$sec=$line;
+			$sec=~s/\[//g;
+			$sec=~s/\].*$//g;
+			if (!defined($conf->{$sec})) {
+				$conf->{$sec}={};
+			}else {
+				die('Section "'.$sec.'" redefined at line "'.$line_number.'"');
+			}
+		}elsif ($line=~/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t].*$/) {
+			$var=$line;
+			$data=$line;
+			$var=~s/^[\ \t]*([A-Za-z\-\_0-9]+)[\ \t]=[\ \t].*$/$1/;
+			$data=~s/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t](.*)$/$1/;
+
+			if (defined($conf->{$sec}{$var})) {
+				die('$conf->{"'.$sec.'"}{"'.$var.'"} redefined at line '.$line_number);
+			}else {
+				$conf->{$sec}{$var}=[$data];
+			}
+		}elsif ($line =~ /^[\ \t]+.*$/) {
+			if (!defined($var)) {
+				die('Data line found at line '.$line_number.', but no variable is currently set');
+			}
+			$data=$line;
+			$data=~ s/^[\ \t]+(.*)$/$1/;
+			push(@{ $conf->{$sec}{$var} }, $data);
+		}else {
+			die('Failed to parse line '.$line_number);
+		}
+
+		$line_number++;
+	}
 
 	return $conf;
 }
