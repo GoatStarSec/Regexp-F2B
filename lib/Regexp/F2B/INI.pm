@@ -48,6 +48,14 @@ sub parse_f2b_ini_file {
 	if (! -f $file) {
 		die("'".$file."' does not exist");
 	}
+
+	my $raw=read_file($file);
+
+	if (!defined($raw)) {
+		die('Got undef back from read_file');
+	}
+
+	return parse_f2b_ini_string($raw);
 }
 
 sub parse_f2b_ini_string {
@@ -56,6 +64,10 @@ sub parse_f2b_ini_string {
 	if (!defined($raw)) {
 		die('No string passed to parse');
 	}
+
+	my $conf={};
+
+	return $conf;
 }
 
 =head1 AUTHOR

@@ -3,6 +3,7 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More;
+use Data::Dumper;
 
 BEGIN {
 	use_ok('Regexp::F2B::INI');
@@ -45,6 +46,21 @@ eval {
 	my $conf=parse_f2b_ini_file('t/filter.d/common.conf');
 	$worked = 1;
 };
-ok( $worked eq '1', 'parse file check' ) or diag("Parsing failed... ".$@);
+ok( $worked eq '1', 'parse file check1' ) or diag("Parsing failed... ".$@);
+
+# make sure we get the expected return type
+$worked = 0;
+$tests_ran++;
+eval {
+	my $conf=parse_f2b_ini_file('t/filter.d/common.conf');
+	if (!defined($conf)) {
+		die('Got undefined return from parse_f2b_ini_file');
+	}
+	if (ref($conf) ne 'HASH') {
+		die('ref($conf) is "'.ref($conf).'" and not HASH');
+	}
+	$worked = 1;
+};
+ok( $worked eq '1', 'parse file check2' ) or diag("Parsing failed... ".$@);
 
 done_testing($tests_ran);
