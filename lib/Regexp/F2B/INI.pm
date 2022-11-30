@@ -93,11 +93,11 @@ sub parse_f2b_ini_string {
 			}else {
 				die('Section "'.$sec.'" redefined at line "'.$line_number.'"');
 			}
-		}elsif ($line=~/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t].*$/) {
+		}elsif ($line=~/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t]*.*$/) {
 			$var=$line;
 			$data=$line;
 			$var=~s/^[\ \t]*([A-Za-z\-\_0-9]+)[\ \t]=[\ \t].*$/$1/;
-			$data=~s/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t](.*)$/$1/;
+			$data=~s/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]=[\ \t]*(.*)$/$1/;
 
 			if (defined($conf->{$sec}{$var})) {
 				die('$conf->{"'.$sec.'"}{"'.$var.'"} redefined at line '.$line_number);
