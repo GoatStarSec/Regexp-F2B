@@ -10,7 +10,7 @@ use File::Spec;
 use Regexp::IPv6 qw($IPv6_re);
 use Regexp::IPv4 qw($IPv4_re);
 
-$Data::Dumper::Sortkeys=1;
+$Data::Dumper::Sortkeys = 1;
 
 =head1 NAME
 
@@ -108,13 +108,13 @@ sub new {
 		pre_regexp                => $opts{pre_regexp},
 		regexp                    => $opts{regexp},
 		regexp_has_mlf_id         => {},
-				regexp_has_mlf_forget     => {},
-				regexp_has_mlf_gain     => {},
+		regexp_has_mlf_forget     => {},
+		regexp_has_mlf_gain       => {},
 		regexp_has_no_fail        => {},
 		pre_regexp_has_mlf_id     => {},
 		pre_regexp_has_mlf_forget => {},
-				pre_regexp_has_no_fail    => {},
-				pre_regexp_has_mlf_gain     => {},
+		pre_regexp_has_no_fail    => {},
+		pre_regexp_has_mlf_gain   => {},
 	};
 	bless $self;
 
@@ -325,38 +325,42 @@ sub new_from_f2b_filter {
 
 	# @order is actually reversed given how it is generated
 	# reverse it so it can be used with foreach
-	@order=reverse(@order);
+	@order = reverse(@order);
 
-	my %vars=%override_vars;
+	my %vars = %override_vars;
 
 	my @array_keysA;
 	my @scalar_keysA;
 	my %array_keysH;
 	my %scalar_keysH;
-	foreach my $conf(@order) {
-		if (defined( $confs->{$conf} )) {
-			my @sections=grep(!/^INCLUDES$/, grep(!/^INCLUDES$/, keys(%{ $confs->{$conf} })));
+	foreach my $conf (@order) {
+		if ( defined( $confs->{$conf} ) ) {
+			my @sections = grep( !/^INCLUDES$/, grep( !/^INCLUDES$/, keys( %{ $confs->{$conf} } ) ) );
 
 			foreach my $section (@sections) {
-				my $var_prepend='';
-				if (
-					$section ne 'DEFAULT' && $section ne 'Definition'
-					) {
-					$var_prepend=$section.'/';
+				my $var_prepend = '';
+				if ( $section ne 'DEFAULT' && $section ne 'Definition' ) {
+					$var_prepend = $section . '/';
 				}
 
-				my @vars=keys( %{ $confs->{$conf}{$section} });
+				my @vars = keys( %{ $confs->{$conf}{$section} } );
 				foreach my $var (@vars) {
-					my $var_name=$var_prepend.$var;
-					if (!defined( $override_vars{$var_name} )) {
-						if (defined($confs->{$conf}{$section}{$var}[1])) {
-							$vars{$var_name}=$confs->{$conf}{$section}{$var};
-							push(@array_keysA, $var_name);
-							$array_keysH{$var_name}=1;
-						}elsif (defined($confs->{$conf}{$section}{$var}[0])) {
-							$vars{$var_name}=$confs->{$conf}{$section}{$var}[0];
-							push(@scalar_keysA, $var_name);
-							$scalar_keysH{$var_name}=1;
+					if ( $var eq 'datepattern' ) {
+						delete( $confs->{$conf}{$section}{$var} );
+					}
+					else {
+						my $var_name = $var_prepend . $var;
+						if ( !defined( $override_vars{$var_name} ) ) {
+							if ( defined( $confs->{$conf}{$section}{$var}[1] ) ) {
+								$vars{$var_name} = $confs->{$conf}{$section}{$var};
+								push( @array_keysA, $var_name );
+								$array_keysH{$var_name} = 1;
+							}
+							elsif ( defined( $confs->{$conf}{$section}{$var}[0] ) ) {
+								$vars{$var_name} = $confs->{$conf}{$section}{$var}[0];
+								push( @scalar_keysA, $var_name );
+								$scalar_keysH{$var_name} = 1;
+							}
 						}
 					}
 				}
@@ -364,22 +368,23 @@ sub new_from_f2b_filter {
 		}
 	}
 
-	my $loop_max=3;
-	my $loop_count=0;
+	my $loop_max   = 3;
+	my $loop_count = 0;
 	while ( $loop_count <= $loop_max ) {
 		foreach my $scalar (@scalar_keysA) {
-			foreach my $key (keys(%vars)) {
-				if ($scalar ne $key) {
-					my $quoted=quotemeta($scalar);
-					my $replacement=$vars{$scalar};
-					if (ref($vars{$key}) eq '') {
-						$vars{$key}=~s/<$quoted>/$replacement/g;
-						$vars{$key}=~s/\%\($quoted\)s/$replacement/g;
-					}elsif (ref($vars{$key}) eq 'ARRAY') {
-						my $int=0;
-						while (defined($vars{$key}[$int])) {
-							$vars{$key}[$int]=~s/<$quoted>/$replacement/g;
-							$vars{$key}[$int]=~s/\%\($quoted\)s/$replacement/g;
+			foreach my $key ( keys(%vars) ) {
+				if ( $scalar ne $key ) {
+					my $quoted      = quotemeta($scalar);
+					my $replacement = $vars{$scalar};
+					if ( ref( $vars{$key} ) eq '' ) {
+						$vars{$key} =~ s/<$quoted>/$replacement/g;
+						$vars{$key} =~ s/\%\($quoted\)s/$replacement/g;
+					}
+					elsif ( ref( $vars{$key} ) eq 'ARRAY' ) {
+						my $int = 0;
+						while ( defined( $vars{$key}[$int] ) ) {
+							$vars{$key}[$int] =~ s/<$quoted>/$replacement/g;
+							$vars{$key}[$int] =~ s/\%\($quoted\)s/$replacement/g;
 							$int++;
 						}
 					}
@@ -390,7 +395,7 @@ sub new_from_f2b_filter {
 		$loop_count++;
 	}
 
-	die( Dumper(\%vars) );
+	die( Dumper( \%vars ) );
 }
 
 =head2 proc_lines
