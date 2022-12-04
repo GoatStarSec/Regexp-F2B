@@ -24,7 +24,8 @@ ok( $worked eq '0', 'all undef check' ) or diag("Created a object when all requi
 $worked = 0;
 $tests_ran++;
 eval {
-	$object = Regexp::F2B->new_from_f2b_filter( file => 't/filter.d/fast-log-attack-src.conf' );
+#	$object = Regexp::F2B->new_from_f2b_filter( file => 't/filter.d/fast-log-attack-src.conf' );
+	$object = Regexp::F2B->new_from_f2b_filter( file => 't/filter.d/sshd.conf' );
 	$worked = 1;
 };
 ok( $worked eq '1', 'file exists check1' ) or diag( "Failed to load a simple known good file... " . $@ );
