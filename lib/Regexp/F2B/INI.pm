@@ -29,12 +29,19 @@ our $VERSION = '0.0.1';
 =head1 SYNOPSIS
 
     use Regexp::F2B::INI;
-
-
+    use Data::Dumper;
+    
+    my $conf=parse_f2b_ini_file('/usr/local/etc/fail2ban/filter.d/sshd.conf');
+    
+    print Dumper($conf);
 
 =head1 METHODS
 
 =head2 parse_f2b_ini_file
+
+Parses the specified file.
+
+    my $conf=parse_f2b_ini_file('/usr/local/etc/fail2ban/filter.d/sshd.conf');
 
 =cut
 
@@ -66,6 +73,15 @@ sub parse_f2b_ini_file {
 	return parse_f2b_ini_string($raw);
 }
 
+=head2 parse_f2b_ini_string
+
+Parses a f2b INI from a string.
+
+   	my $raw=read_file($file);
+    my $conf=parse_f2b_ini_string($raw);
+
+=cut
+
 sub parse_f2b_ini_string {
 	my ( $raw ) = @_;
 
@@ -86,8 +102,8 @@ sub parse_f2b_ini_string {
 			$var=undef;
 		}elsif ($line =~ /^\[[\ \t]*[A-Za-z0-9\-\_]+[\ \t]*\]/) {
 			$sec=$line;
-			$sec=~s/\[//g;
-			$sec=~s/\].*$//g;
+			$sec=~s/\[[\ \t]*//g;
+			$sec=~s/[\ \t]*\].*$//g;
 			if (!defined($conf->{$sec})) {
 				$conf->{$sec}={};
 			}else {
@@ -120,6 +136,48 @@ sub parse_f2b_ini_string {
 
 	return $conf;
 }
+
+=head1 F2B INI FORMAT
+
+Has the basic INI sections style of /^[\ \t]*\[[\ \t]*([a-zA-Z0-9\-\_]+)[\ \t]*\]/.
+Any white space before/after the section name between the [] is removed.
+Anything after ] is ignored. If a section has not been declared yet, '', is
+used as the section name.
+
+Comments are lines matching /^[\ \t]*\#/.
+
+Variables are all assumed to be arrays, given there is nothing to specify if a
+variable is a array or not.
+
+Variable names in the format of /[A-Za-z\-\_0-9]+/. Extraction is done via...
+
+    $var=~s/^[\ \t]*([A-Za-z\-\_0-9]+)[\ \t]*=[\ \t]*.*$/$1/;
+
+With the data section of the variable being extracted via...
+
+    $data=~s/^[\ \t]*[A-Za-z\-\_0-9]+[\ \t]*=[\ \t]*(.*)$/$1/;
+
+This assumes any white space at the end is relevant as it it is not possible to
+tell if it is or not.
+
+If the next line starts with white space and contains something after the white
+space other than #, then it assumes it is part of the previous variable, removing
+the starting white space and pushing it onto the array for the current variable.
+
+Blank lines, comments, and sections unset the current variable and anything that
+is not a new variable, comment, or section is considered an error.
+
+    # the start of a file, current section ''
+    a_variable=foo
+    _another_var =bar
+    _another_var_ = bar
+    __another_var = item 0 of the array
+                    item 1 of teh array
+
+    [foo]
+    # this is a the start of the section 'foo'
+    
+    _a_new-var_ = some thing
 
 =head1 AUTHOR
 
