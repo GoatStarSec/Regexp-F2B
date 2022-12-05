@@ -24,6 +24,76 @@ eval{
 };
 ok( $worked eq '1', 'host replace test') or diag("did not replace <HOST>... ".$@);
 
+# make sure pre_regexp won't accept <HOST>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP4>, dst:.*$'],
+							 pre_regexp=>['foo <HOST>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test1') or diag("pre_regexp accepted <HOST>");
+
+# make sure pre_regexp won't accept <IP4>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP4>, dst:.*$'],
+							 pre_regexp=>['foo <IP4>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test2') or diag("pre_regexp accepted <IP4>");
+
+# make sure pre_regexp won't accept <IP6>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP6>, dst:.*$'],
+							 pre_regexp=>['foo <IP6>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test3') or diag("pre_regexp accepted <IP6>");
+
+# make sure pre_regexp won't accept <ADDR>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP6>, dst:.*$'],
+							 pre_regexp=>['foo <ADDR>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test4') or diag("pre_regexp accepted <ADDR>");
+
+# make sure pre_regexp won't accept <DNS>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP6>, dst:.*$'],
+							 pre_regexp=>['foo <DNS>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test5') or diag("pre_regexp accepted <DNS>");
+
+# make sure pre_regexp won't accept <SUBNET>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP6>, dst:.*$'],
+							 pre_regexp=>['foo <SUBNET>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test6') or diag("pre_regexp accepted <SUBNET>");
+
+# make sure pre_regexp won't accept <CIDR>
+$worked=0;
+$tests_ran++;
+eval{
+	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP6>, dst:.*$'],
+							 pre_regexp=>['foo <CIDR>']);
+	$worked=1;
+};
+ok( $worked eq '0', 'pre_regexp bad tag test7') or diag("pre_regexp accepted <CIDR>");
+
 # make sure it will replace <IP4>
 $worked=0;
 $tests_ran++;
