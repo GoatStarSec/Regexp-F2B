@@ -3,6 +3,7 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More;
+use Data::Dumper;
 
 BEGIN {
 	use_ok('Regexp::F2B');
@@ -26,6 +27,7 @@ $tests_ran++;
 eval {
 #	$object = Regexp::F2B->new_from_f2b_filter( file => 't/filter.d/fast-log-attack-src.conf' );
 	$object = Regexp::F2B->new_from_f2b_filter( file => 't/filter.d/sshd.conf' );
+	die(Dumper($object));
 	$worked = 1;
 };
 ok( $worked eq '1', 'file exists check1' ) or diag( "Failed to load a simple known good file... " . $@ );

@@ -93,28 +93,61 @@ sub new {
 		$int++;
 	}
 
-	if ( !defined( $opts{regexp} ) ) {
+	if ( !defined( $opts{pre_regexp} ) ) {
 		$opts{pre_regexp} = [];
 	}
 	else {
-		if ( ref( $opts{regexp} ) ne 'ARRAY' ) {
-			die( 'regexp is a ' . ref( $opts{regexp} ) . ' and not a array' );
+		if ( ref( $opts{pre_regexp} ) ne 'ARRAY' ) {
+			die( 'regexp is a ' . ref( $opts{pre_regexp} ) . ' and not a array' );
 		}
 	}
 
 	my $self = {
-		lines      => $opts{lines},
-		log_lines  => [],
-		pre_regexp => $opts{pre_regexp},
-		pre_regexp => $opts{pre_regexp},
-		regexp     => $opts{regexp},
+		lines         => $opts{lines},
+		log_lines     => [],
+		pre_regexp    => $opts{pre_regexp},
+		ignore_regexp => $opts{ignore_regexp},
+		regexp        => $opts{regexp},
 	};
 	bless $self;
 
 	my $to_drop = { regexp => [], pre_regexp => [] };
 
+	$int = 0;
+	my @pre_regexp_tmp;
+	while ( defined( $self->{pre_regexp}[$int] ) ) {
+		my $regexp = 'pre_regexp';
+		my $value  = $self->{$regexp}[$int];
+
+		# pre_regexp should not match any hosts etc... only for checking if it is a line we want and
+		# maybe grabbing the bits we want to check via regexp
+		if (   $value =~ /\<HOST\>/
+			|| $value =~ /\<CIDR\>/
+			|| $value =~ /\<SUBNET\>/
+			|| $value =~ /\<IP4\>/
+			|| $value =~ /\<IP6\>/
+			|| $value =~ /\<ADDR\>/
+			|| $value =~ /\<DNS\>/ )
+		{
+			die( "HOST, CIDR, SUBNET, IP4, IP6, and DNS may only be used in regexp... " . $value );
+		}
+
+		$value =~ s/\<F\-MLFID\>//;
+		$value =~ s/\<\/F\-MLFID\>//;
+		$value =~ s/\<F-CONTENT\>/(/;
+		$value =~ s/\<\/F-CONTENT\>/)/;
+
+		if ( $value ne '' ) {
+			push( @pre_regexp_tmp, $value );
+		}
+
+		$int++;
+	}
+	delete( $self->{pre_regexp} );
+	$self->{pre_regexp} = \@pre_regexp_tmp;
+
 	# process each regexp
-	my @items = ( 'regexp', 'pre_regexp' );
+	my @items = ('regexp');
 	foreach my $regexp (@items) {
 		$int = 0;
 		while ( defined( $self->{$regexp}[$int] ) ) {
@@ -148,10 +181,13 @@ sub new {
 			}
 
 			my $drop = 0;
-			if (   $self->{$regexp}[$int] =~ /\<F-NOFAIL\>/
-				|| $self->{$regexp}[$int] =~ /\<\/F-NOFAIL\>/
-				|| $self->{$regexp}[$int] =~ /\<F-MLFFORGET\>/
-				|| $self->{$regexp}[$int] =~ /\<\/F-MLFFORGET\>/ )
+			if (
+				$regexp eq 'regexp'
+				&& (   $self->{regexp}[$int] =~ /\<F-NOFAIL\>/
+					|| $self->{regexp}[$int] =~ /\<\/F-NOFAIL\>/
+					|| $self->{regexp}[$int] =~ /\<F-MLFFORGET\>/
+					|| $self->{regexp}[$int] =~ /\<\/F-MLFFORGET\>/ )
+				)
 			{
 				$drop = 1;
 				push( @{ $to_drop->{$regexp} }, $int );
@@ -233,16 +269,22 @@ sub new {
 	# remove any blank items
 	foreach my $regexp (@items) {
 		$int = 0;
+		my @new_array;
 		while ( defined( $self->{$regexp}[$int] ) ) {
 			if ( $self->{$regexp}[$int] eq '' ) {
 				delete( $self->{$regexp}[$int] );
 			}
+			else {
+				push( @new_array, $self->{$regexp}[$int] );
+			}
 
 			$int++;
 		}
+		delete( $self->{$regexp} );
+		$self->{$regexp} = \@new_array;
 	}
 
-	# process the drop items;
+	# make sure we have atleast one item we can use
 	foreach my $regexp (@items) {
 		if ( !defined( $self->{regexp}[0] ) ) {
 			die('Post processing there are no regexp defined');
@@ -381,6 +423,7 @@ sub new_from_f2b_filter {
 		}
 	}
 
+	# variable substitution pass
 	my $loop_max   = 3;
 	my $loop_count = 0;
 	while ( $loop_count <= $loop_max ) {
@@ -408,7 +451,119 @@ sub new_from_f2b_filter {
 		$loop_count++;
 	}
 
-	#	die( Dumper( \%vars ) );
+	# array joining pass
+	$loop_max   = 5;
+	$loop_count = 0;
+	while ( $loop_count <= $loop_max ) {
+		foreach my $key ( keys(%vars) ) {
+			if ( ref( $vars{$key} ) eq '' ) {
+				if ( $vars{$key} =~ /(^\<|\%\()[a-zA-Z0-9\_\-]+(\>|\)s)$/ ) {
+					my $var = $vars{$key};
+					$var =~ s/^(\<|\%\()//;
+					$var =~ s/(\>|\)s)$//;
+					if ( defined( $array_keysH{$var} )
+						&& $key ne $var )
+					{
+						$vars{$key} = $vars{$var};
+					}
+				}
+			}
+			elsif ( ref( $vars{$key} ) eq 'ARRAY' ) {
+				my $new_array = ();
+				my $changed   = 0;
+				foreach my $value ( @{ $vars{$key} } ) {
+					if ( $value =~ /(^\<|\%\()[a-zA-Z0-9\_\-]+(\>|\)s)$/ ) {
+						my $var = $value;
+						$var =~ s/^(\<|\%\()//;
+						$var =~ s/(\>|\)s)$//;
+						if ( defined( $array_keysH{$var} )
+							&& $key ne $var )
+						{
+							foreach my $tmp_value ( @{ $vars{$var} } ) {
+								push( @{$new_array}, $tmp_value );
+							}
+							$changed = 1;
+						}
+					}
+					else {
+						push( @{$new_array}, $value );
+					}
+				}
+				if ($changed) {
+					$vars{$key} = $new_array;
+				}
+			}
+		}
+
+		$loop_count++;
+	}
+
+	my @pre_regexp;
+	if ( defined( $vars{prefregex} ) ) {
+		if ( ref( $vars{prefregex} ) eq 'ARRAY' ) {
+			foreach my $value ( @{ $vars{prefregex} } ) {
+				if ( $value ne '' ) {
+					push( @pre_regexp, $value );
+				}
+			}
+
+		}
+		elsif ( ref( $vars{prefregex} ) eq '' ) {
+			if ( $vars{prefregex} ne '' ) {
+				push( @pre_regexp, $vars{prefregex} );
+			}
+		}
+	}
+
+	my @ignore_regexp;
+	if ( defined( $vars{ignoreregex} ) ) {
+		if ( ref( $vars{ignoreregex} ) eq 'ARRAY' ) {
+			foreach my $value ( @{ $vars{ignoreregex} } ) {
+				if ( $value ne '' ) {
+					push( @ignore_regexp, $value );
+				}
+			}
+		}
+		elsif ( ref( $vars{ignoreregex} ) eq '' ) {
+			if ( defined( $vars{ignoreregexp} )
+				&& $vars{ignoreregexp} ne '' )
+			{
+				push( @ignore_regexp, $vars{ignoreregex} );
+			}
+		}
+	}
+
+	my @regexp;
+	if ( defined( $vars{failregex} ) ) {
+		if ( ref( $vars{failregex} ) eq 'ARRAY' ) {
+			foreach my $value ( @{ $vars{failregex} } ) {
+				if ( $value ne '' ) {
+					push( @regexp, $value );
+				}
+			}
+		}
+		elsif ( ref( $vars{failregex} ) eq '' ) {
+			if ( $vars{failregex} ne '' ) {
+				push( @regexp, $vars{failregex} );
+			}
+		}
+	}
+
+	my $lines = 1;
+	if (   defined( $vars{maxlines} )
+		&& ref( $vars{maxlines} ) eq ''
+		&& $vars{maxlines} =~ /^[1-9][0-9]*$/ )
+	{
+		$lines = $vars{maxlines};
+	}
+
+	#die(Dumper(\@pre_regexp));
+	return Regexp::F2B->new(
+		lines         => $lines,
+		regexp        => \@regexp,
+		pre_regexp    => \@pre_regexp,
+		ignore_regexp => \@ignore_regexp,
+	);
 }
 
 =head2 proc_lines
