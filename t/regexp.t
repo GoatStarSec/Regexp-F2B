@@ -17,7 +17,7 @@ my $worked=0;
 $tests_ran++;
 eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <HOST>, dst:.*$']);
-	if ($object->{regexp}[0] =~ /\<HOST\>/) {
+	if ($object->{regexp}[0] !~ /\(?\<HOST\>/) {
 		die($object->{regexp}[0]);
 	}
 	$worked=1;
@@ -99,7 +99,7 @@ $worked=0;
 $tests_ran++;
 eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src\:\ <IP4>, dst:.*$']);
-	if ($object->{regexp}[0] =~ /\<IP4\>/) {
+	if ($object->{regexp}[0] !~ /\(\?\<IP4\>/) {
 		die($object->{regexp}[0]);
 	}
 	$worked=1;
@@ -113,20 +113,20 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <HOST>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: foo.bar, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne 'foo.bar') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{HOST} ne 'foo.bar') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: 1.2.3.4, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{HOST} ne '1.2.3.4') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: ::1, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '::1'){
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{HOST} ne '::1'){
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };
@@ -139,8 +139,8 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <IP4>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: 1.2.3.4, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{IP4} ne '1.2.3.4') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };
@@ -153,8 +153,8 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <IP6>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: ::1, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne '::1') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{IP6} ne '::1') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };
@@ -167,14 +167,14 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <ADDR>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: ::1, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne '::1') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{ADDR} ne '::1') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: 1.2.3.4, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{ADDR} ne '1.2.3.4') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };
@@ -187,14 +187,14 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <CIDR>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: ::1/128, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne '::1/128') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{CIDR} ne '::1/128') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: 1.2.3.4/32, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4/32') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{CIDR} ne '1.2.3.4/32') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };
@@ -207,26 +207,26 @@ eval{
 	$object=Regexp::F2B->new(regexp=>['auth failed src: <SUBNET>, dst:.*$']);
 	my $line='2022-09-11T05:03:11 auth failed src: ::1/128, dst:5.6.7.8';
 	my $matched=$object->proc_line($line);
-	if ($matched ne '::1/128') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{SUBNET} ne '::1/128') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: 1.2.3.4/32, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4/32') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{SUBNET} ne '1.2.3.4/32') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: ::1, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '::1') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{SUBNET} ne '::1') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 
 	$line='2022-09-11T05:03:11 auth failed src: 1.2.3.4, dst:5.6.7.8';
 	$matched=$object->proc_line($line);
-	if ($matched ne '1.2.3.4') {
-		die("returned '".$matched."'\n\n".Dumper($line,$object));
+	if ($matched->{SUBNET} ne '1.2.3.4') {
+		die("returned '".Dumper($matched)."'\n\n".Dumper($line,$object));
 	}
 	$worked=1;
 };

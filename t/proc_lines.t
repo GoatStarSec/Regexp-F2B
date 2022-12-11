@@ -3,6 +3,7 @@ use 5.006;
 use strict;
 use warnings;
 use Test::More;
+use Data::Dumper;
 
 BEGIN {
 	use_ok('Regexp::F2B');
@@ -44,9 +45,11 @@ ok( $worked eq '1', 'dont die on def' ) or diag('Dies when a line is specified')
 $worked = 0;
 $tests_ran++;
 eval {
-	$object = Regexp::F2B->new( regexp => ['.*src\:\ <HOST>, dst:.*$'] );
-	if ( $object->proc_line('foo') ) {
-		die('matched');
+	my $test = '.*src\:\ <HOST>, dst:.*$';
+	$object = Regexp::F2B->new( regexp => [$test] );
+	my $results = $object->proc_line('foo');
+	if ( $results->{found} ) {
+		die( 'matched... results are... ' . Dumper($results) );
 	}
 	$worked = 1;
 };

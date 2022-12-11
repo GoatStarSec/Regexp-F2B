@@ -113,6 +113,11 @@ sub new {
 
 	my $to_drop = { regexp => [], pre_regexp => [] };
 
+	#
+	#
+	# process each pre_regexp
+	#
+	#
 	$int = 0;
 	my @pre_regexp_tmp;
 	while ( defined( $self->{pre_regexp}[$int] ) ) {
@@ -132,9 +137,9 @@ sub new {
 			die( "HOST, CIDR, SUBNET, IP4, IP6, and DNS may only be used in regexp... " . $value );
 		}
 
-		$value =~ s/\<F\-MLFID\>//;
-		$value =~ s/\<\/F\-MLFID\>//;
-		$value =~ s/\<F-CONTENT\>/(/;
+		$value =~ s/\<F\-MLFID\>/(?<F-MLFID>/;
+		$value =~ s/\<\/F\-MLFID\>/)/;
+		$value =~ s/\<F-CONTENT\>/(?<F-CONTENT>/;
 		$value =~ s/\<\/F-CONTENT\>/)/;
 
 		if ( $value ne '' ) {
@@ -146,127 +151,86 @@ sub new {
 	delete( $self->{pre_regexp} );
 	$self->{pre_regexp} = \@pre_regexp_tmp;
 
+	#
+	#
 	# process each regexp
-	my @items = ('regexp');
-	foreach my $regexp (@items) {
-		$int = 0;
-		while ( defined( $self->{$regexp}[$int] ) ) {
+	#
+	#
+	$int = 0;
+	while ( defined( $self->{regexp}[$int] ) ) {
 
-			# we should only have F-CONTENT in pre_regexp
-			if (
-				$regexp eq 'regexp'
-				&& (   $self->{$regexp}[$int] =~ /\<F\-CONTENT\>/
-					|| $self->{$regexp}[$int] =~ /\<\/F\-CONTENT\>/ )
-				)
-			{
-				die(      "F-CONTENT tags can only be used in pre_regexp and not regexp... '"
-						. $self->{$regexp}[$int]
-						. "'" );
-			}
+		# we should only have F-CONTENT in pre_regexp
+		if (   $self->{regexp}[$int] =~ /\<F\-CONTENT\>/
+			|| $self->{regexp}[$int] =~ /\<\/F\-CONTENT\>/ )
 
-			# pre_regexp should not match any hosts etc... only for checking if it is a line we want and
-			# maybe grabbing the bits we want to check via regexp
-			if (
-				$regexp eq 'pre_regexp'
-				&& (   $self->{$regexp}[$int] =~ /\<HOST\>/
-					|| $self->{$regexp}[$int] =~ /\<CIDR\>/
-					|| $self->{$regexp}[$int] =~ /\<SUBNET\>/
-					|| $self->{$regexp}[$int] =~ /\<IP4\>/
-					|| $self->{$regexp}[$int] =~ /\<IP6\>/
-					|| $self->{$regexp}[$int] =~ /\<ADDR\>/
-					|| $self->{$regexp}[$int] =~ /\<DNS\>/ )
-				)
-			{
-				die( "HOST, CIDR, SUBNET, IP4, IP6, and DNS may only be used in regexp... " . $self->{$regexp}[$int] );
-			}
-
-			my $drop = 0;
-			if (
-				$regexp eq 'regexp'
-				&& (   $self->{regexp}[$int] =~ /\<F-NOFAIL\>/
-					|| $self->{regexp}[$int] =~ /\<\/F-NOFAIL\>/
-					|| $self->{regexp}[$int] =~ /\<F-MLFFORGET\>/
-					|| $self->{regexp}[$int] =~ /\<\/F-MLFFORGET\>/ )
-				)
-			{
-				$drop = 1;
-				push( @{ $to_drop->{$regexp} }, $int );
-			}
-
-			if ( !$drop ) {
-
-				# add ^ and $ bits as needed
-				if ( $self->{$regexp}[$int] !~ /\$$/ ) {
-					$self->{$regexp}[$int] = $self->{$regexp}[$int] . '.*$';
-				}
-				if ( $self->{$regexp}[$int] !~ /^\^/ ) {
-					$self->{$regexp}[$int] = '^.*' . $self->{$regexp}[$int];
-				}
-
-				# replace various tags with regexps for matching
-				my $has_finder = 0;
-				if ( $self->{$regexp}[$int] =~ /\<HOST\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<HOST\>/($IPv4_re|$IPv6_re|[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<ADDR\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<ADDR\>/($IPv4_re|$IPv6_re)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<CIDR\>/ ) {
-					$self->{$regexp}[$int]
-						=~ s/\<CIDR\>/($IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<SUBNET\>/ ) {
-					$self->{$regexp}[$int]
-						=~ s/\<SUBNET\>/($IPv4_re|$IPv6_re|$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<IP4\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<IP4\>/($IPv4_re)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<IP6\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<IP6\>/($IPv6_re)/;
-					$has_finder = 1;
-				}
-				elsif ( $self->{$regexp}[$int] =~ /\<DNS\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<DNS\>/([a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
-					$has_finder = 1;
-				}
-
-				# if it actually does not match anything, remove it
-				if ( !$has_finder ) {
-					push( @{ $to_drop->{$regexp} }, $int );
-				}
-
-				# if this is meant to be able to include multiple lines, insert .* to allow it to do that
-				if ( $self->{$regexp}[$int] =~ /\<SKIPLINES\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<SKIPLINES\>/.*/g;
-				}
-
-				# remove other F-.* bits as those are pointless
-				if ( $self->{$regexp}[$int] =~ /\<\/*F-[\_0-9a-zA-Z]+\>/ ) {
-					$self->{$regexp}[$int] =~ s/\<\/*F-[\_0-9a-zA-Z]+\>//g;
-				}
-			}
-
-			$int++;
+		{
+			die( "F-CONTENT tags can only be used in pre_regexp and not regexp... '" . $self->{regexp}[$int] . "'" );
 		}
-	}
 
-	# process the drop items;
-	foreach my $regexp (@items) {
-		if ( defined( $to_drop->{$regexp}[0] ) ) {
-			my @to_drop = reverse( @{ $to_drop->{$regexp} } );
-			foreach my $item (@to_drop) {
-				delete( $self->{$regexp}[$item] );
-			}
+		# process any /F-[A-Za-z0-9\_\-]+/ items
+		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
+			$self->{regexp}[$int] =~ s/(\<F\-[A-Za-z0-9\_\-]+\>)/(?$1/g;
 		}
+		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
+			$self->{regexp}[$int] =~ s/\<\/F\-[A-Za-z0-9\_\-]+\>/)/g;
+		}
+
+		# add ^ and $ bits as needed
+		if ( $self->{regexp}[$int] !~ /\$$/ ) {
+			$self->{regexp}[$int] = $self->{regexp}[$int] . '.*$';
+		}
+		if ( $self->{regexp}[$int] !~ /^\^/ ) {
+			$self->{regexp}[$int] = '^.*' . $self->{regexp}[$int];
+		}
+
+		# replace various tags with regexps for matching
+		my $has_finder = 0;
+		if ( $self->{regexp}[$int] =~ /\<HOST\>/ ) {
+			$self->{regexp}[$int] =~ s/\<HOST\>/(?<HOST>$IPv4_re|$IPv6_re|[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<ADDR\>/ ) {
+			$self->{regexp}[$int] =~ s/\<ADDR\>/(?<ADDR>$IPv4_re|$IPv6_re)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<CIDR\>/ ) {
+			$self->{regexp}[$int]
+				=~ s/\<CIDR\>/(?<CIDR>$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<SUBNET\>/ ) {
+			$self->{regexp}[$int]
+				=~ s/\<SUBNET\>/(?<SUBNET>$IPv4_re|$IPv6_re|$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
+			$self->{regexp}[$int] =~ s/\<IP4\>/(?<IP4>$IPv4_re)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
+			$self->{regexp}[$int] =~ s/\<IP6\>/(?<IP6>$IPv6_re)/;
+			$has_finder = 1;
+		}
+		elsif ( $self->{regexp}[$int] =~ /\<DNS\>/ ) {
+			$self->{regexp}[$int] =~ s/\<DNS\>/(?<DNS>[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
+			$has_finder = 1;
+		}
+
+		# if it actually does not match anything, remove it
+		if ( !$has_finder ) {
+			push( @{ $to_drop->{regexp} }, $int );
+		}
+
+		# if this is meant to be able to include multiple lines, insert .* to allow it to do that
+		if ( $self->{regexp}[$int] =~ /\<SKIPLINES\>/ ) {
+			$self->{regexp}[$int] =~ s/\<SKIPLINES\>/.*/g;
+		}
+
+		$int++;
 	}
 
 	# remove any blank items
+	my @items = ( 'pre_regexp', 'regexp' );
 	foreach my $regexp (@items) {
 		$int = 0;
 		my @new_array;
@@ -586,20 +550,30 @@ sub proc_line {
 
 	my $joined = '';
 
+	my $found = { found => 0, };
+
 	foreach my $join_line ( @{ $self->{log_lines} } ) {
 		$joined = $joined . $join_line . "\n";
 	}
 	chomp($joined);
-	my $joined_orig = $joined;
 
-	foreach my $regexp ( @{ $self->{regexp} } ) {
-		$joined =~ s/$regexp/$1/s;
-		if ( $joined_orig ne $joined ) {
-			return $joined;
+	my $int       = 0;
+	my $not_found = 1;
+	while ( defined( $self->{regexp}[$int] ) && $not_found ) {
+		my $regexp = $self->{regexp}[$int];
+		if ( $joined =~ /$regexp/ ) {
+			foreach my $key ( keys(%+) ) {
+				$not_found = 0;
+				$found->{$key} = $+{$key};
+			}
+			$not_found = 0;
+			$found->{found} = 1;
 		}
+
+		$int++;
 	}
 
-	return 0;
+	return $found;
 }
 
 =head1 AUTHOR
