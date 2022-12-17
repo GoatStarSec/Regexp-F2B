@@ -4,16 +4,19 @@ lib/Regexp/F2B/INI.pm
 Makefile.PL
 MANIFEST			This list of files
 README.md
+src_bin/regexp-f2b
+bin/.exists
 t/00-load.t
 t/01-load.t
-t/creation_from_file.t
 t/creation.t
-t/filter.d
+t/creation_from_file.t
 t/filter.d/common.conf
 t/filter.d/fast-log-attack-src.conf
 t/filter.d/sshd.conf
+t/ini.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
 t/proc_lines.t
 t/regexp.t
+

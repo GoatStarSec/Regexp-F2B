@@ -169,11 +169,11 @@ sub new {
 		}
 
 		# process any /F-[A-Za-z0-9\_\-]+/ items
-		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
-			$self->{regexp}[$int] =~ s/\<F\-([A-Za-z0-9\_\-]+)\>/(?<F$1>/g;
+		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_]+\>/ ) {
+			$self->{regexp}[$int] =~ s/\<F\-([A-Za-z0-9\_]+)\>/(?<F$1>/g;
 		}
-		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
-			$self->{regexp}[$int] =~ s/\<\/F\-[A-Za-z0-9\_\-]+\>/)/g;
+		if ( $self->{regexp}[$int] =~ /\<\/F\-[A-Za-z0-9\_]+\>/ ) {
+			$self->{regexp}[$int] =~ s/\<\/F\-[A-Za-z0-9\_]+\>/)/g;
 		}
 
 		# add ^ and $ bits as needed
@@ -590,8 +590,15 @@ sub proc_line {
 		my $regexp = $self->{regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
 			foreach my $key ( keys(%+) ) {
+				my $val=$+{$key};
 				$not_found = 0;
-				$found->{$key} = $+{$key};
+				if ($key=~/^F/) {
+					my $new_key=$key;
+					$new_key=~s/^F/F-/;
+					$found->{$new_key} = $val;
+				}else {
+					$found->{$key} = $val;
+				}
 			}
 			$not_found = 0;
 			$found->{found} = 1;
