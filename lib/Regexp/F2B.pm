@@ -45,7 +45,9 @@ our $VERSION = '0.0.1';
 
 Args
 
-    - lines :: Number of match lines to use for mathcing.
+    - lines :: Number of match lines to use for mathcing. Defaults to 1.
+
+    - pre_regexp ::
 
 =cut
 
@@ -103,11 +105,10 @@ sub new {
 	}
 
 	my $self = {
-		lines         => $opts{lines},
-		log_lines     => [],
-		pre_regexp    => $opts{pre_regexp},
-		ignore_regexp => $opts{ignore_regexp},
-		regexp        => $opts{regexp},
+		lines      => $opts{lines},
+		log_lines  => [],
+		pre_regexp => $opts{pre_regexp},
+		regexp     => $opts{regexp},
 	};
 	bless $self;
 
@@ -137,9 +138,9 @@ sub new {
 			die( "HOST, CIDR, SUBNET, IP4, IP6, and DNS may only be used in regexp... " . $value );
 		}
 
-		$value =~ s/\<F\-MLFID\>/(?<F-MLFID>/;
+		$value =~ s/\<F\-MLFID\>/(?<FMLFID>/;
 		$value =~ s/\<\/F\-MLFID\>/)/;
-		$value =~ s/\<F-CONTENT\>/(?<F-CONTENT>/;
+		$value =~ s/\<F-CONTENT\>/(?<FCONTENT>/;
 		$value =~ s/\<\/F-CONTENT\>/)/;
 
 		if ( $value ne '' ) {
@@ -169,7 +170,7 @@ sub new {
 
 		# process any /F-[A-Za-z0-9\_\-]+/ items
 		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
-			$self->{regexp}[$int] =~ s/(\<F\-[A-Za-z0-9\_\-]+\>)/(?$1/g;
+			$self->{regexp}[$int] =~ s/\<F\-([A-Za-z0-9\_\-]+)\>/(?<F$1>/g;
 		}
 		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_\-]+\>/ ) {
 			$self->{regexp}[$int] =~ s/\<\/F\-[A-Za-z0-9\_\-]+\>/)/g;
@@ -557,8 +558,34 @@ sub proc_line {
 	}
 	chomp($joined);
 
+	#
+	# if we have a pre_regexp, search and see if we find anything
+	#
 	my $int       = 0;
 	my $not_found = 1;
+	while ( defined( $self->{pre_regexp}[$int] ) && $not_found ) {
+		my $regexp = $self->{pre_regexp}[$int];
+		if ( $joined =~ /$regexp/ ) {
+			if ( defined( $+{'FCONTENT'} ) ) {
+				$not_found            = 0;
+				$joined               = $+{'FCONTENT'};
+				$found->{'F-CONTENT'} = $+{'FCONTENT'};
+			}
+			if ( defined( $+{'FMLFID'} ) ) {
+				$found->{'F-MLFID'} = $+{'FMLFID'};
+			}
+		}
+
+		$int++;
+	}
+
+	# we did not any matching lines, so just return
+	if ( defined( $self->{pre_regexp}[$int] ) && $not_found ) {
+		return $found;
+	}
+
+	$int       = 0;
+	$not_found = 1;
 	while ( defined( $self->{regexp}[$int] ) && $not_found ) {
 		my $regexp = $self->{regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
