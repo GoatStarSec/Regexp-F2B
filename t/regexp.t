@@ -281,10 +281,10 @@ $tests_ran++;
 eval {
 	$object = Regexp::F2B->new(
 		pre_regexp =>
-			['^\d\d\d\d\-\d\d\-\d\dT\d\d\:\d\d:\d\d\ <F-MLFID>\w\w*\[\d\d*\]</F-MLFID>\: <F-CONTENT>.*</F-CONTENT>$'],
-		regexp => ['auth failed src: <HOST>, dst:<F-DEST>..*</F-DEST>$']
+							   ['^\d\d\d\d\-\d\d\-\d\dT\d\d\:\d\d:\d\d\ <F-MLFID>\w\w*\[\d\d*\]</F-MLFID>\: <F-CONTENT>.*</F-CONTENT>$'],
+		regexp => ['auth failed src: <HOST>, dst: <F-DEST>..*</F-DEST>$']
 	);
-	my $line = '2022-09-11T05:03:11 sshd[1234]: auth failed src: ::1, dst:5.6.7.8';
+	my $line = '2022-09-11T05:03:11 sshd[1234]: auth failed src: ::1, dst: 5.6.7.8';
 	my $matched;
 	eval { $matched = $object->proc_line($line); };
 	if ($@) {
@@ -292,16 +292,16 @@ eval {
 			'$object->proc_line($line) died... line=' . Dumper($line) . "\nobject=" . Dumper($object) . "\n\$@=" . $@ );
 	}
 	if ( $matched->{HOST} ne '::1' ) {
-		die( "returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
+		die( "HOST match error... returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
 	}
 	if ( $matched->{'F-MLFID'} ne 'sshd[1234]' ) {
-		die( "returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
+		die( "F-MLFID match error... returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
 	}
-	if ( $matched->{'F-CONTENT'} ne 'auth failed src: ::1, dst:5.6.7.8' ) {
-		die( "returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
+	if ( $matched->{'F-CONTENT'} ne 'auth failed src: ::1, dst: 5.6.7.8' ) {
+		die( "F-CONTENT match error... returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
 	}
 	if ( $matched->{'F-DEST'} ne '5.6.7.8' ) {
-		die( "returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
+		die( "F-DEST  match error... returned '" . Dumper($matched) . "'\n\n" . Dumper( $line, $object ) );
 	}
 	$worked = 1;
 };

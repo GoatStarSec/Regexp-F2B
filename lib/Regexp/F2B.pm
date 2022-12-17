@@ -584,20 +584,24 @@ sub proc_line {
 		return $found;
 	}
 
+	#
+	# now search through each regexp for possible matches
+	#
 	$int       = 0;
 	$not_found = 1;
 	while ( defined( $self->{regexp}[$int] ) && $not_found ) {
+		# copy this here so the key test for F keys does not cause an issue
 		my $regexp = $self->{regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
-			foreach my $key ( keys(%+) ) {
-				my $val=$+{$key};
+			my %found_items=%+;
+			foreach my $key ( keys(%found_items) ) {
 				$not_found = 0;
 				if ($key=~/^F/) {
 					my $new_key=$key;
 					$new_key=~s/^F/F-/;
-					$found->{$new_key} = $val;
+					$found->{$new_key} = $found_items{$key};
 				}else {
-					$found->{$key} = $val;
+					$found->{$key} = $found_items{$key};
 				}
 			}
 			$not_found = 0;
