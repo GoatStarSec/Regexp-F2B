@@ -49,11 +49,11 @@ Args
 
     - pre_regexp ::
 
-    - chomp_start :: Remove date at the start.
+    - start_chomp :: Remove date at the start.
         - Default :: 1
 
     -  start_pattern :: Removes this from the start of log lines.
-        - Default :: /[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +/
+        - Default :: (?<b_time>[a-zA-Z]+)\ +(?<d_time>\d+)\ +(?<T_time>(?<R_time>(?<H_time>\d+)\:(?<M_time>\d+))\:(?<S_time>\d+))\ +
 
 =cut
 
@@ -115,7 +115,8 @@ sub new {
 	}
 
 	if ( !defined( $opts{start_pattern} ) ) {
-		$opts{start_pattern} = '[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +';
+		$opts{start_pattern}
+			= '(?<b_time>[a-zA-Z]+)\ +(?<d_time>\d+)\ +(?<T_time>(?<R_time>(?<H_time>\d+)\:(?<M_time>\d+))\:(?<S_time>\d+))\ +';
 	}
 
 	my $self = {
@@ -123,7 +124,7 @@ sub new {
 		log_lines     => [],
 		pre_regexp    => $opts{pre_regexp},
 		regexp        => $opts{regexp},
-		start_pattern => '[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +',
+		start_pattern => $opts{start_pattern},
 		start_chomp   => $opts{start_chomp},
 	};
 	bless $self;
@@ -281,6 +282,11 @@ sub new {
     - file ::
 
     - vars
+
+The following will be passed to new if specified.
+
+    - start_chomp
+    - start_pattern
 
 =cut
 
@@ -556,6 +562,8 @@ sub new_from_f2b_filter {
 		regexp        => \@regexp,
 		pre_regexp    => \@pre_regexp,
 		ignore_regexp => \@ignore_regexp,
+		start_chomp   => $opts{start_chomp},
+		start_pattern => $opts{start_pattern},
 	);
 
 	$object->{vars} = \%vars;
@@ -576,9 +584,15 @@ sub proc_line {
 		die('No line passed');
 	}
 
+	my $found = { found => 0, new_line => $orig, data => {} };
+
 	if ( $self->{start_chomp} ) {
 		my $regex = $self->{start_pattern};
 		$line =~ s/^$regex//;
+		my %found_items = %+;
+		foreach my $key ( keys(%found_items) ) {
+			$found->{data}{$key} = $found_items{$key};
+		}
 	}
 
 	chomp($line);
@@ -595,7 +609,7 @@ sub proc_line {
 	}
 	chomp($joined);
 
-	my $found = { found => 0, joined => $joined, new_line => $orig, data => {} };
+	$found->{joined} = $joined;
 
 	#
 	# if we have a pre_regexp, search and see if we find anything
