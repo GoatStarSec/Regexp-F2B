@@ -1,2 +1,171 @@
 #!perl
 
+use strict;
+use warnings;
+use Getopt::Long;
+use TOML;
+use YAML::Dumper;
+use JSON;
+use Regexp::F2B;
+use Data::Dumper;
+use Regexp::F2B::INI;
+
+$Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Terse    = 1;
+
+sub version {
+	print "yqh v. 0.1.1\n";
+}
+
+sub help {
+	&version;
+
+	print '
+';
+
+}
+
+# get the commandline options
+my $help    = 0;
+my $version = 0;
+my $file;
+my $action          = 'parse';
+my $output          = 'yaml';
+my $output_var_type = 'hash';
+my $pretty=1;
+my $nopretty;
+my $log;
+my $vars_string;
+my $vars={};
+
+GetOptions(
+	'version' => \$version,
+	'v'       => \$version,
+	'help'    => \$help,
+	'h'       => \$help,
+	'f=s'     => \$file,
+	'a=s'     => \$action,
+	'np'       => \$nopretty,
+	'o=s'     => \$output,
+	'l=s'     => \$log,
+	'ovt=s'     => \$output_var_type,
+	'vars=s'      => \$vars_string,
+);
+
+if ( $output_var_type ne 'array' && $output_var_type ne 'hash' ) {
+	die( '--ovt set to "' . $output_var_type . '" is not recognized... must be either hash or array' );
+}
+
+if ($nopretty) {
+	$pretty=0;
+}
+
+if (defined($vars_string)) {
+	foreach my $item (  split(/\,/, $vars_string) ){
+		if ($item!~/^\w$/) {
+			my ($var, $val)=split(/\=/, $item, 2);
+			if (defined($var) && defined($val) ) {
+				$vars->{$var}=$val;
+			}
+		}
+	}
+}
+
+if ( !defined($file) ) {
+	die('No file specified via -f');
+}
+elsif ( !-f $file ) {
+	die( 'The file specified via -f, "' . $file . '", does not exist' );
+}
+elsif ( !-r $file ) {
+	die( 'The file specified via -f, "' . $file . '", is not readable' );
+}
+
+if ( $action eq 'parse' || $action eq 'read' ) {
+	my $to_dump;
+	if ( $action eq 'parse' ) {
+		my $parsed = Regexp::F2B->new_from_f2b_filter( file => $file, vars=>$vars );
+		$to_dump = {
+			pre_regexp => $parsed->{pre_regexp},
+			regexp     => $parsed->{regexp},
+			vars       => $parsed->{vars},
+		};
+	}
+	elsif ( $action eq 'read' ) {
+		$to_dump = parse_f2b_ini_file($file);
+	}
+	if ( $output eq 'toml' ) {
+		print to_toml($to_dump);
+	}
+	elsif ( $output eq 'yaml' ) {
+		my $dumper = YAML::Dumper->new;
+		print $dumper->dump($to_dump);
+	}
+	elsif ( $output eq 'json' ) {
+		my $json = JSON->new;
+		$json->canonical(1);
+		$json->pretty($pretty);
+		print $json->encode($to_dump);
+	}
+	elsif ( $output eq 'dumper' ) {
+		print Dumper($to_dump);
+	}
+	else {
+		die( '"' . $output . '" specivied via -o is a unknown output format' );
+	}
+	exit 0;
+}
+
+if ( $action eq 'proc_log' ) {
+	if ( !defined($log) ) {
+		die('No log file specified via -l');
+	}
+	elsif ( !-f $log ) {
+		die( 'The item specified via -l, "' . $log . '", is not a file or does not exist' );
+	}
+	elsif ( !-r $log ) {
+		die( 'The item specified via -l, "' . $log . '", is not readable' );
+	}
+
+	if ( $output ne 'json' && $output ne 'dumper' ) {
+		$output = 'json';
+	}
+
+	open( my $fh, '<', $log ) or die( 'Failed to open "' . $log . '"... ' . $! );
+	my $f2b = Regexp::F2B->new_from_f2b_filter( file => $file );
+
+	my @itemsA;
+	my %itemsH;
+
+	my $int = 0;
+	while ( my $line = <$fh> ) {
+		my $found = $f2b->proc_line($line);
+		if ( $output_var_type eq 'hash' ) {
+			$itemsH{$int} = $found;
+		}
+		else {
+			$itemsA[$int] = $found;
+		}
+		$int++;
+	}
+
+	if ( $output eq 'json' ) {
+		my $json = JSON->new;
+		$json->canonical(1);
+		$json->pretty($pretty);
+		if ( $output_var_type eq 'hash' ) {
+			print $json->encode( \%itemsH );
+		}
+		else {
+			print $json->encode( \@itemsA );
+		}
+	}
+	elsif ( $output eq 'dumper' ) {
+		if ( $output_var_type eq 'hash' ) {
+			print Dumper( \%itemsH );
+		}
+		else {
+			print Dumper(@itemsA);
+		}
+	}
+}

@@ -49,6 +49,12 @@ Args
 
     - pre_regexp ::
 
+    - chomp_start :: Remove date at the start.
+        - Default :: 1
+
+    -  start_pattern :: Removes this from the start of log lines.
+        - Default :: /[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +/
+
 =cut
 
 sub new {
@@ -104,11 +110,21 @@ sub new {
 		}
 	}
 
+	if ( !defined( $opts{start_chomp} ) ) {
+		$opts{start_chomp} = 1;
+	}
+
+	if ( !defined( $opts{start_pattern} ) ) {
+		$opts{start_pattern} = '[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +';
+	}
+
 	my $self = {
-		lines      => $opts{lines},
-		log_lines  => [],
-		pre_regexp => $opts{pre_regexp},
-		regexp     => $opts{regexp},
+		lines         => $opts{lines},
+		log_lines     => [],
+		pre_regexp    => $opts{pre_regexp},
+		regexp        => $opts{regexp},
+		start_pattern => '[a-zA-Z]+\ +\d+\ +\d+\:\d+\:\d+\ +',
+		start_chomp   => $opts{start_chomp},
 	};
 	bless $self;
 
@@ -227,6 +243,10 @@ sub new {
 			$self->{regexp}[$int] =~ s/\<SKIPLINES\>/.*/g;
 		}
 
+		# while pyhton allows conditionals for items like <foo> to be checked
+		# via (?(foo), perl needs (?(<foo>)
+		$self->{regexp}[$int] =~ s/\(\?\(([a-zA-Z_0-0][a-zA-Z_0-0]+)\)/(?(<$1>)/g;
+
 		$int++;
 	}
 
@@ -236,10 +256,7 @@ sub new {
 		$int = 0;
 		my @new_array;
 		while ( defined( $self->{$regexp}[$int] ) ) {
-			if ( $self->{$regexp}[$int] eq '' ) {
-				delete( $self->{$regexp}[$int] );
-			}
-			else {
+			if ( $self->{$regexp}[$int] ne '' ) {
 				push( @new_array, $self->{$regexp}[$int] );
 			}
 
@@ -261,10 +278,14 @@ sub new {
 
 =head2 new_from_f2b_filter
 
+    - file ::
+
+    - vars
+
 =cut
 
 sub new_from_f2b_filter {
-	my ( $blank, %opts, %override_vars ) = @_;
+	my ( $blank, %opts ) = @_;
 
 	if ( !defined( $opts{file} ) ) {
 		die('No value for file defined');
@@ -347,7 +368,7 @@ sub new_from_f2b_filter {
 	# reverse it so it can be used with foreach
 	@order = reverse(@order);
 
-	my %vars = %override_vars;
+	my %vars;
 
 	my @array_keysA;
 	my @scalar_keysA;
@@ -370,7 +391,7 @@ sub new_from_f2b_filter {
 					}
 					else {
 						my $var_name = $var_prepend . $var;
-						if ( !defined( $override_vars{$var_name} ) ) {
+						if ( !defined( $opts{vars}{$var_name} ) ) {
 							if ( defined( $confs->{$conf}{$section}{$var}[1] ) ) {
 								$vars{$var_name} = $confs->{$conf}{$section}{$var};
 								push( @array_keysA, $var_name );
@@ -386,6 +407,13 @@ sub new_from_f2b_filter {
 				}
 			}
 		}
+	}
+
+	# add in the overrides...
+	foreach my $var_name ( keys( %{ $opts{vars} } ) ) {
+		$vars{$var_name} = $opts{vars}{$var_name};
+		push( @scalar_keysA, $var_name );
+		$scalar_keysH{$var_name} = 1;
 	}
 
 	# variable substitution pass
@@ -523,12 +551,16 @@ sub new_from_f2b_filter {
 	}
 
 	#die(Dumper(\@pre_regexp));
-	return Regexp::F2B->new(
+	my $object = Regexp::F2B->new(
 		lines         => $lines,
 		regexp        => \@regexp,
 		pre_regexp    => \@pre_regexp,
 		ignore_regexp => \@ignore_regexp,
 	);
+
+	$object->{vars} = \%vars;
+
+	return $object;
 }
 
 =head2 proc_lines
@@ -538,8 +570,15 @@ sub new_from_f2b_filter {
 sub proc_line {
 	my ( $self, $line ) = @_;
 
+	my $orig = $line;
+
 	if ( !defined($line) ) {
 		die('No line passed');
+	}
+
+	if ( $self->{start_chomp} ) {
+		my $regex = $self->{start_pattern};
+		$line =~ s/^$regex//;
 	}
 
 	chomp($line);
@@ -551,12 +590,12 @@ sub proc_line {
 
 	my $joined = '';
 
-	my $found = { found => 0, };
-
 	foreach my $join_line ( @{ $self->{log_lines} } ) {
 		$joined = $joined . $join_line . "\n";
 	}
 	chomp($joined);
+
+	my $found = { found => 0, joined => $joined, new_line => $orig, data => {} };
 
 	#
 	# if we have a pre_regexp, search and see if we find anything
@@ -567,12 +606,12 @@ sub proc_line {
 		my $regexp = $self->{pre_regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
 			if ( defined( $+{'FCONTENT'} ) ) {
-				$not_found            = 0;
-				$joined               = $+{'FCONTENT'};
-				$found->{'F-CONTENT'} = $+{'FCONTENT'};
-			}
-			if ( defined( $+{'FMLFID'} ) ) {
-				$found->{'F-MLFID'} = $+{'FMLFID'};
+				$not_found                  = 0;
+				$joined                     = $+{'FCONTENT'};
+				$found->{data}{'F-CONTENT'} = $+{'FCONTENT'};
+				if ( defined( $+{'FMLFID'} ) ) {
+					$found->{data}{'F-MLFID'} = $+{'FMLFID'};
+				}
 			}
 		}
 
@@ -590,18 +629,20 @@ sub proc_line {
 	$int       = 0;
 	$not_found = 1;
 	while ( defined( $self->{regexp}[$int] ) && $not_found ) {
+
 		# copy this here so the key test for F keys does not cause an issue
 		my $regexp = $self->{regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
-			my %found_items=%+;
+			my %found_items = %+;
 			foreach my $key ( keys(%found_items) ) {
 				$not_found = 0;
-				if ($key=~/^F/) {
-					my $new_key=$key;
-					$new_key=~s/^F/F-/;
-					$found->{$new_key} = $found_items{$key};
-				}else {
-					$found->{$key} = $found_items{$key};
+				if ( $key =~ /^F/ ) {
+					my $new_key = $key;
+					$new_key =~ s/^F/F-/;
+					$found->{data}{$new_key} = $found_items{$key};
+				}
+				else {
+					$found->{data}{$key} = $found_items{$key};
 				}
 			}
 			$not_found = 0;
