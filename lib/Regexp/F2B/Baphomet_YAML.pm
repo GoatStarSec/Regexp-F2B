@@ -7,14 +7,6 @@ use File::Slurp;
 use Exporter qw(import);
 use YAML;
 
-my @std_export = qw(
-	parse_baphomet_yaml_file
-	parse_baphomet_yaml_string
-);
-our %EXPORT_TAGS = ( 'std' => [@std_export], );
-
-our @EXPORT = @std_export;
-
 =head1 NAME
 
 Regexp::F2B::Baphomet_YAML - Parse Fail2ban style INI files
@@ -32,22 +24,32 @@ our $VERSION = '0.0.1';
     use Regexp::F2B::Baphomet_YAML;
     use Data::Dumper;
     
-    my $f2b_regexp_obj=load('foo.yaml');
+    my $f2b_regexp_obj=Regexp::F2B::Baphomet_YAML->load('foo.yaml');
     
     print Dumper($conf);
 
-=head1 FUNCTIONS
+=head1 METHODS
 
 =head2 load
 
 Parses the specified file.
 
-    my $conf=load('foo.yaml');
+    my $conf=load(file=>'foo.yaml',vars=>$vars);
 
 =cut
 
 sub load{
-	my ($file)=@_;
+	my ( $blank, %opts ) = @_;
+
+	if ( !defined( $opts{file} ) ) {
+		die('No value for file defined');
+	}
+
+	if ( !-f $opts{file} ) {
+		die( '"' . $opts{file} . '" does not exist' );
+	}
+
+	my ( $vol, $dir, $file_name ) = File::Spec->splitpath( $opts{file} );
 
 	
 }
@@ -93,6 +95,10 @@ The processing is done in the order below.
 
 =over 4
 
+'[==' and '==]' are used for bracking variables to be replaced. Done like below.
+
+    $foo~s/\[\=\=\ *$var\ *\=\=\]/$val/g;
+
 =item 1: Includes
 
 Includes are read in order they are found. A file may not be included more than once. Files also must
@@ -131,10 +137,50 @@ for all variables.
 
 If use_template defined and set to 1, L<Template> is now used with the variables.
 
-=item 5: Filling In Of pre_regexp And regexp
+=item 5: Filling In Of pre_regexp, regexp, And start_pattern
 
 Now that variable substitution and variable templating is done, the resulting variables are
-used for filling in any substitutions in pre_regexp and regexp.
+used for filling in any substitutions in pre_regexp, regexp, and start_pattern.
+
+=back
+
+=head1 Simplified/Named Capture Groups
+
+The following simplified capture groups that are autobuilt when used.
+
+They when used, the capture group regexp is automatically filled in.
+
+=over 4
+
+=item <HOST>
+
+Matches a domain name, IPv4 address, or IPv6 address.
+
+=item <SUBNET>
+
+Matches a IPv6 or IPv4 subnet or address.
+
+=item <IP4>
+
+Matches a IPv4 address.
+
+=item <IP6>
+
+Matches a IPv6 address.
+
+=item <ADDR>
+
+Matches a IPv4 or IPv6 address.
+
+=item <DNS>
+
+Matches a domainname.
+
+=item <SRC> / <DEST>
+
+These two are meant to be used in combination and only regard as being found if matched together.
+
+It will match either a IPv4 or IPv6 address.
 
 =back
 

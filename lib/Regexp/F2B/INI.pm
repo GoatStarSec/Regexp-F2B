@@ -165,7 +165,7 @@ sub load {
 	my ( $vol, $dir, $file_name ) = File::Spec->splitpath( $opts{file} );
 
 	my $confs = {};
-	eval { $confs->{$file_name} = parse_f2b_ini_file( $opts{file} ); };
+	$confs->{$file_name} = parse_f2b_ini_file( $opts{file} );
 
 	# init the ordering based on the read file
 	my @order;
