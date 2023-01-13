@@ -21,4 +21,4 @@ t/pod-coverage.t
 t/pod.t
 t/proc_lines.t
 t/regexp.t
-
+t/baphomet_parse.t

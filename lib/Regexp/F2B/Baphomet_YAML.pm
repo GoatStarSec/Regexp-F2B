@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use File::Slurp;
 use Exporter qw(import);
-use YAML;
+use YAML::PP;
 
 =head1 NAME
 
@@ -54,7 +54,9 @@ sub parse {
 	my $confs = {};
 
 	# start reading in the configs
-	eval { $confs->{$file_name} = Load( $opts{file} ); };
+	my $ypp = YAML::PP->new;
+	eval { $confs->{$file_name} = $ypp->load_file( $opts{file} ); };
+	#eval { $confs->{$file_name} = Load( $opts{file} ); };
 	if ($@) {
 		die( 'Failed to read the file "' . $opts{file} . '"... ' . $@ );
 	}
@@ -67,6 +69,8 @@ sub parse {
 	{
 		push( @order,   $file_name );
 		push( @to_read, @{ $confs->{$file_name}{includes} } );
+	}else {
+		push( @order,   $file_name );
 	}
 
 	# begin reading in other confs
@@ -83,7 +87,7 @@ sub parse {
 		$confs_read->{$item} = 1;
 
 		# try to parse the new file
-		eval { $confs->{$item} = Load( $dir . '/' . $item ); };
+		eval { $confs->{$item} = $ypp->load_file( $dir . '/' . $item ); };
 		if ($@) {
 			die( 'Failed to read the file "' . $dir . '/' . $item . '" as a include for "'.$opts{file}.'"... ' . $@ );
 		}
@@ -117,6 +121,7 @@ sub parse {
 
 	# real in the vars for each include
 	foreach my $conf (@order) {
+
 		if (defined( $confs->{$conf}{vars_order} ) &&
 			defined( $confs->{$conf}{vars_order}[0] )
 			) {
@@ -141,6 +146,13 @@ sub parse {
 
 		if (defined( $confs->{$conf}{start_pattern} ) ){
 			$start_chomp=$confs->{$conf}{start_pattern};
+		}
+
+		if (defined( $confs->{$conf}{vars} ) ){
+			my @conf_keys=keys( %{ $confs->{$conf}{vars} } );
+			foreach my $conf_key (@conf_keys) {
+				$vars{$conf_key}=$confs->{$conf}{vars}{$conf_key};
+			}
 		}
 	}
 
