@@ -30,15 +30,15 @@ our $VERSION = '0.0.1';
 
 =head1 METHODS
 
-=head2 load
+=head2 parse
 
 Parses the specified file.
 
-    my $conf=load(file=>'foo.yaml',vars=>$vars);
+    my $conf=parse(file=>'foo.yaml',vars=>$vars);
 
 =cut
 
-sub load{
+sub parse {
 	my ( $blank, %opts ) = @_;
 
 	if ( !defined( $opts{file} ) ) {
@@ -51,7 +51,143 @@ sub load{
 
 	my ( $vol, $dir, $file_name ) = File::Spec->splitpath( $opts{file} );
 
-	
+	my $confs = {};
+
+	# start reading in the configs
+	eval { $confs->{$file_name} = Load( $opts{file} ); };
+	if ($@) {
+		die( 'Failed to read the file "' . $opts{file} . '"... ' . $@ );
+	}
+
+	# init the ordering based on the read file
+	my @order;
+	my @to_read;
+	if (   defined( $confs->{$file_name}{includes} )
+		&& defined( $confs->{$file_name}{includes}[0] ) )
+	{
+		push( @order,   $file_name );
+		push( @to_read, @{ $confs->{$file_name}{includes} } );
+	}
+
+	# begin reading in other confs
+	my $confs_read = { $file_name => 1 };
+	foreach my $item (@to_read) {
+		if ( !-f $dir . '/' . $item ) {
+			die( "'" . $item . "' required does not exist" );
+		}
+
+		# make sure we have not read this previously
+		if ( defined( $confs_read->{$item} ) ) {
+			die( "'" . $item . "' has already been read... likely circular dependency" );
+		}
+		$confs_read->{$item} = 1;
+
+		# try to parse the new file
+		eval { $confs->{$item} = Load( $dir . '/' . $item ); };
+		if ($@) {
+			die( 'Failed to read the file "' . $dir . '/' . $item . '" as a include for "'.$opts{file}.'"... ' . $@ );
+		}
+
+		if (   defined( $confs->{$item}{includes} )
+			   && defined( $confs->{$item}{includes}[0] ) )
+		{
+			push( @order,   $item );
+			push( @to_read, @{ $confs->{$item}{includes} } );
+		}
+
+	}
+
+	# @order is actually reversed given how it is generated
+	# reverse it so it can be used with foreach
+	@order = reverse(@order);
+
+	my %vars;
+	my @vars_order;
+	my $start_chomp;
+	my $start_pattern;
+	my @pre_regexp;
+	my @regexp;
+#	my $use_template;
+#	my %template_config;
+	#	my %template_vars;
+
+	if (defined($opts{vars})) {
+		%vars=%{$opts{vars}};
+	}
+
+	# real in the vars for each include
+	foreach my $conf (@order) {
+		if (defined( $confs->{$conf}{vars_order} ) &&
+			defined( $confs->{$conf}{vars_order}[0] )
+			) {
+			push(@vars_order, @{  $confs->{$conf}{vars_order} });
+		}
+
+		if (defined( $confs->{$conf}{pre_regexp} ) &&
+			defined( $confs->{$conf}{pre_regexp}[0] )
+			) {
+			push(@pre_regexp, @{  $confs->{$conf}{pre_regexp} });
+		}
+
+		if (defined( $confs->{$conf}{regexp} ) &&
+			defined( $confs->{$conf}{regexp}[0] )
+			) {
+			push(@regexp, @{  $confs->{$conf}{regexp} });
+		}
+
+		if (defined( $confs->{$conf}{start_chomp} ) ){
+			$start_chomp=$confs->{$conf}{start_chomp};
+		}
+
+		if (defined( $confs->{$conf}{start_pattern} ) ){
+			$start_chomp=$confs->{$conf}{start_pattern};
+		}
+	}
+
+	# process priority vars
+	my @var_keys=keys( %vars );
+	@vars_order=reverse(@vars_order);
+	my $count=0;
+	foreach my $item (@vars_order) {
+		while ($count <= 1 ) {
+			if (defined( $vars{$item} )) {
+				foreach my $var (@var_keys) {
+					my $val=$vars{$var};
+					$vars{$item}=~s/\[\=\= *$var *\=\=\]/$val/g;
+				}
+			}
+
+			$count++;
+		}
+	}
+
+	# put all the vars together
+	$count=0;
+	while ($count <= 1 ) {
+		foreach my $item (@var_keys) {
+			foreach my $var (@var_keys) {
+				foreach my $var (@var_keys) {
+					if ($var ne $item) {
+						my $val=$vars{$var};
+						$vars{$item}=~s/\[\=\= *$var *\=\=\]/$val/g;
+					}
+				}
+			}
+		}
+
+		$count++;
+	}
+
+	my $conf={
+			  regexp=>\@regexp,
+			  pre_regexp=>\@regexp,
+			  vars=>\%vars,
+			  vars_order=>\@vars_order,
+			  start_chomp=>$start_chomp,
+			  start_pattern=>$start_pattern,
+			  };
+
+	return $conf;
 }
 
 =head1 Baphomet YAML Schema
@@ -64,7 +200,7 @@ There are several vars.
     - vars_order :: A array with the order variables should be processed in.
         - Default :: undef
 
-    - include :: Include files to use. Anything used previously may not be re-included.
+    - includes :: Array of include files to use. Anything used previously may not be re-included.
         - Default :: undef
 
     - start_chomp :: A 0 or 1 boolean for if the start of the line should
@@ -78,13 +214,17 @@ There are several vars.
 
     - regexp :: An array of regexps to use.
 
-    - use_template :: A 0 or 1 boolean for if L<Template> should be used or not.
-        - Default :: 0
+=cut
 
-    - template_config :: The config to pass to L<Template>. Include INCLUDE_PATH will be excluded if defined.
+#    - use_template :: A 0 or 1 boolean for if L<Template> should be used or not.
+#        - Default :: 0
 
-    - template_vars :: Additional vars to pass to template if used. 'vars', 'start_chomp', and 'start_pattern'
-                       reserved variable names and as those from above will be passed as those.
+#    - template_config :: The config to pass to L<Template>. Include INCLUDE_PATH will be excluded if defined.
+
+#    - template_vars :: Additional vars to pass to template if used. 'vars', 'start_chomp', and 'start_pattern'
+#                       reserved variable names and as those from above will be passed as those.
+
+=pod
 
     - tests :: A hash of tests for perform. See the relevant section below on that.
         - Default :: undef
@@ -93,34 +233,43 @@ There are several vars.
 
 The processing is done in the order below.
 
-=over 4
-
 '[==' and '==]' are used for bracking variables to be replaced. Done like below.
 
     $foo~s/\[\=\=\ *$var\ *\=\=\]/$val/g;
 
+=over 4
+
 =item 1: Includes
 
-Includes are read in order they are found. A file may not be included more than once. Files also must
-be in the same directory as the file being read.
+Includes are read in order they are found. The order is then reversed for the
+the purpose of working from the last included to the config file that started
+it all.
+
+A file may not be included more than once.
+
+Files also must be in the same directory as the file being read.
 
     - vars :: May be added to, but no previously defined item may be replaced.
 
     - vars_order :: New items will be appended to the end.
 
-    - start_chomp :: Can be set if not already set.
+    - start_chomp :: Overrides the previous set.
 
-    - start_pattern :: Can be set if not already set.
+    - start_pattern :: Overrides the previous set.
 
     - pre_regexp :: New items will be appended to the end.
 
     - regexp :: New items will be appended to the end.
 
-    - use_template ::  Can be set if not already set.
+=cut
 
-    - template_config :: May be added to, but no previously defined item may be replaced.
+#    - use_template ::  Can be set if not already set.
 
-    - template_vars :: May be added to, but no previously defined item may be replaced.
+#    - template_config :: May be added to, but no previously defined item may be replaced.
+
+#    - template_vars :: May be added to, but no previously defined item may be replaced.
+
+=pod
 
     - vars_order :: New items will be appended to the end.
 
@@ -133,11 +282,15 @@ Initial variable substitutions made in order.
 At this point two passes are made on the variables doing substitutions, but this time
 for all variables.
 
-=item 4: Templating
+=cut
 
-If use_template defined and set to 1, L<Template> is now used with the variables.
+#=item 4: Templating
 
-=item 5: Filling In Of pre_regexp, regexp, And start_pattern
+#If use_template defined and set to 1, L<Template> is now used with the variables.
+
+=pod
+
+=item 4: Filling In Of pre_regexp, regexp, And start_pattern
 
 Now that variable substitution and variable templating is done, the resulting variables are
 used for filling in any substitutions in pre_regexp, regexp, and start_pattern.
@@ -178,7 +331,8 @@ Matches a domainname.
 
 =item <SRC> / <DEST>
 
-These two are meant to be used in combination and only regard as being found if matched together.
+These two are meant to be used in combination and only regard as being found if
+matched together.
 
 It will match either a IPv4 or IPv6 address.
 
@@ -193,6 +347,7 @@ test name. The following keys for each test are available.
     - found :: IF found should be 0 or 1.
     - data :: A hash of expected found captures and results.
     - undefed :: A list captures that sould not be defined.
+    - vars :: A hash of vars to be used specified for passing at object creation.
 
 Example...
 
