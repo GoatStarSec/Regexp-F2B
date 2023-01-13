@@ -76,6 +76,7 @@ sub parse {
 	# begin reading in other confs
 	my $confs_read = { $file_name => 1 };
 	foreach my $item (@to_read) {
+		push( @order,   $item );
 		if ( !-f $dir . '/' . $item ) {
 			die( "'" . $item . "' required does not exist" );
 		}

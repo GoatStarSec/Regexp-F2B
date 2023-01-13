@@ -10,7 +10,7 @@ vars:
   rfc5424_syslog_date: ""
   snort_rule_id: "\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)"
   fastlog_class: "\\[Classification\\: (?<class>[a-zA-Z0-9\\ \\-]+) \\]"
-  fastlog_class2: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==]+) \\]"
+  fastlog_class2: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==]) \\]"
   fastlog_pri: "\\[Priority\\: (?(pri)\\d+)\\]"
   fastlog_proto: "\\{(?<proto>[a-zA-Z0-9]+)\\}"
   fastlog_chomp: "^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] "

@@ -1,0 +1,5 @@
+---
+vars:
+  fastlog_class_to_use: "Misc Attack"
+includes:
+  - "common.yaml"

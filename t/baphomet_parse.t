@@ -21,11 +21,12 @@ eval {
 };
 ok( $worked eq '0', 'all undef check' ) or diag("Created a object when all requirements were undef");
 
- # make sure it works with known good files
+# make sure it works with known good files
 $worked = 0;
 $tests_ran++;
 eval {
-	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/common.yaml' );
+#	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/common.yaml' );
+	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/fastlog_MiscAtk.yaml' );
 die(Dumper($object));
 	$worked = 1;
 };
