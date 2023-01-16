@@ -4,4 +4,4 @@ regexp: '[== fastlog_chomped_with_class  ==]'
 start_chomp: 1
 start_pattern: '[== fastlog_chomp ==]'
 vars:
-  fastlog_class_to_use: Misc Attack
+  fastlog_class_to_use: System event
