@@ -10,11 +10,11 @@ vars:
   rfc5424_syslog_date: ""
   snort_rule_id: "\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)"
   fastlog_class: "\\[Classification\\: (?<class>[a-zA-Z0-9\\ \\-]+) \\]"
-  fastlog_class2: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==]) \\]"
+  fastlog_class_with_class: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==]) \\]"
   fastlog_pri: "\\[Priority\\: (?(pri)\\d+)\\]"
   fastlog_proto: "\\{(?<proto>[a-zA-Z0-9]+)\\}"
   fastlog_chomp: "^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] "
   fastlog_chomped: "\\[[== snort_rule_id  ==]\\] [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class ==]
     [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==] <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
-  fastlog_chomped2: "\\[[== snort_rule_id  ==]\\] [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class2 ==]
+  fastlog_chomped_with_class: "\\[[== snort_rule_id  ==]\\] [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class_with_class ==]
     [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==] <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
