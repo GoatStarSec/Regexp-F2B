@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use File::Slurp;
 use YAML::PP;
+use Regexp::F2B;
 
 =head1 NAME
 
@@ -37,6 +38,24 @@ Load the specified file.
 
 =cut
 
+sub load{
+	my ( $blank, %opts ) = @_;
+
+	my $conf=Regexp::F2B::Baphomet_YAML->parse( %opts );
+
+	my $object = Regexp::F2B->new(
+								  regexp=> $conf->{regexp},
+								  pre_regexp=>$conf->{pre_regexp},
+								  start_chomp=>$conf->{start_chomp},
+								  start_pattern=>$conf->{start_pattern},
+								  vars=>$conf->{vars},
+								  lines=>$conf->{lines},
+								  );
+
+	$object->{vars}=$conf->{vars};
+
+	return $object;
+}
 
 =head2 parse
 
@@ -127,6 +146,7 @@ sub parse {
 	my $start_pattern;
 	my @pre_regexp;
 	my @regexp;
+	my $lines=1;
 
 	#	my $use_template;
 	#	my %template_config;
@@ -163,6 +183,10 @@ sub parse {
 
 		if ( defined( $confs->{$conf}{start_pattern} ) ) {
 			$start_chomp = $confs->{$conf}{start_pattern};
+		}
+
+		if ( defined( $confs->{$conf}{lines} ) ) {
+			$lines = $confs->{$conf}{lines};
 		}
 
 		if ( defined( $confs->{$conf}{vars} ) ) {
@@ -244,6 +268,7 @@ sub parse {
 			vars_order    => \@vars_order,
 			start_chomp   => $start_chomp,
 			start_pattern => $start_pattern,
+			lines=>$lines,
 			};
 }
 
@@ -259,6 +284,9 @@ There are several vars.
 
     - includes :: Array of include files to use. Anything used previously may not be re-included.
         - Default :: undef
+
+    - lines :: The line buffer size to use for mutliline matching.
+        - Default :: 1
 
     - start_chomp :: A 0 or 1 boolean for if the start of the line should
                      have a chunk removed.
