@@ -4,7 +4,6 @@ use 5.006;
 use strict;
 use warnings;
 use File::Slurp;
-use Exporter qw(import);
 use YAML::PP;
 
 =head1 NAME
@@ -30,11 +29,20 @@ our $VERSION = '0.0.1';
 
 =head1 METHODS
 
+=head2 load
+
+Load the specified file.
+
+	my $f2b_obj=Regexp::F2B::Baphomet_YAML->load(file=>'foo.yaml',vars=>$vars);
+
+=cut
+
+
 =head2 parse
 
 Parses the specified file and makes the requires substitions.
 
-    my $conf=parse(file=>'foo.yaml',vars=>$vars);
+    my $conf=Regexp::F2B::Baphomet_YAML->parse(file=>'foo.yaml',vars=>$vars);
 
 =cut
 
@@ -56,6 +64,7 @@ sub parse {
 	# start reading in the configs
 	my $ypp = YAML::PP->new;
 	eval { $confs->{$file_name} = $ypp->load_file( $opts{file} ); };
+
 	#eval { $confs->{$file_name} = Load( $opts{file} ); };
 	if ($@) {
 		die( 'Failed to read the file "' . $opts{file} . '"... ' . $@ );
@@ -69,14 +78,15 @@ sub parse {
 	{
 		push( @order,   $file_name );
 		push( @to_read, @{ $confs->{$file_name}{includes} } );
-	}else {
-		push( @order,   $file_name );
+	}
+	else {
+		push( @order, $file_name );
 	}
 
 	# begin reading in other confs
 	my $confs_read = { $file_name => 1 };
 	foreach my $item (@to_read) {
-		push( @order,   $item );
+		push( @order, $item );
 		if ( !-f $dir . '/' . $item ) {
 			die( "'" . $item . "' required does not exist" );
 		}
@@ -90,11 +100,16 @@ sub parse {
 		# try to parse the new file
 		eval { $confs->{$item} = $ypp->load_file( $dir . '/' . $item ); };
 		if ($@) {
-			die( 'Failed to read the file "' . $dir . '/' . $item . '" as a include for "'.$opts{file}.'"... ' . $@ );
+			die(      'Failed to read the file "'
+					. $dir . '/'
+					. $item
+					. '" as a include for "'
+					. $opts{file} . '"... '
+					. $@ );
 		}
 
 		if (   defined( $confs->{$item}{includes} )
-			   && defined( $confs->{$item}{includes}[0] ) )
+			&& defined( $confs->{$item}{includes}[0] ) )
 		{
 			push( @order,   $item );
 			push( @to_read, @{ $confs->{$item}{includes} } );
@@ -112,61 +127,62 @@ sub parse {
 	my $start_pattern;
 	my @pre_regexp;
 	my @regexp;
-#	my $use_template;
-#	my %template_config;
+
+	#	my $use_template;
+	#	my %template_config;
 	#	my %template_vars;
 
-	if (defined($opts{vars})) {
-		%vars=%{$opts{vars}};
+	if ( defined( $opts{vars} ) ) {
+		%vars = %{ $opts{vars} };
 	}
 
 	# real in the vars for each include
 	foreach my $conf (@order) {
 
-		if (defined( $confs->{$conf}{vars_order} ) &&
-			defined( $confs->{$conf}{vars_order}[0] )
-			) {
-			push(@vars_order, @{  $confs->{$conf}{vars_order} });
+		if (   defined( $confs->{$conf}{vars_order} )
+			&& defined( $confs->{$conf}{vars_order}[0] ) )
+		{
+			push( @vars_order, @{ $confs->{$conf}{vars_order} } );
 		}
 
-		if (defined( $confs->{$conf}{pre_regexp} ) &&
-			defined( $confs->{$conf}{pre_regexp}[0] )
-			) {
-			push(@pre_regexp, @{  $confs->{$conf}{pre_regexp} });
+		if (   defined( $confs->{$conf}{pre_regexp} )
+			&& defined( $confs->{$conf}{pre_regexp}[0] ) )
+		{
+			push( @pre_regexp, @{ $confs->{$conf}{pre_regexp} } );
 		}
 
-		if (defined( $confs->{$conf}{regexp} ) &&
-			defined( $confs->{$conf}{regexp}[0] )
-			) {
-			push(@regexp, @{  $confs->{$conf}{regexp} });
+		if (   defined( $confs->{$conf}{regexp} )
+			&& defined( $confs->{$conf}{regexp}[0] ) )
+		{
+			push( @regexp, @{ $confs->{$conf}{regexp} } );
 		}
 
-		if (defined( $confs->{$conf}{start_chomp} ) ){
-			$start_chomp=$confs->{$conf}{start_chomp};
+		if ( defined( $confs->{$conf}{start_chomp} ) ) {
+			$start_chomp = $confs->{$conf}{start_chomp};
 		}
 
-		if (defined( $confs->{$conf}{start_pattern} ) ){
-			$start_chomp=$confs->{$conf}{start_pattern};
+		if ( defined( $confs->{$conf}{start_pattern} ) ) {
+			$start_chomp = $confs->{$conf}{start_pattern};
 		}
 
-		if (defined( $confs->{$conf}{vars} ) ){
-			my @conf_keys=keys( %{ $confs->{$conf}{vars} } );
+		if ( defined( $confs->{$conf}{vars} ) ) {
+			my @conf_keys = keys( %{ $confs->{$conf}{vars} } );
 			foreach my $conf_key (@conf_keys) {
-				$vars{$conf_key}=$confs->{$conf}{vars}{$conf_key};
+				$vars{$conf_key} = $confs->{$conf}{vars}{$conf_key};
 			}
 		}
 	}
 
 	# process priority vars
-	my @var_keys=keys( %vars );
-	@vars_order=reverse(@vars_order);
-	my $count=0;
+	my @var_keys = keys(%vars);
+	@vars_order = reverse(@vars_order);
+	my $count = 0;
 	foreach my $item (@vars_order) {
-		while ($count <= 3 ) {
-			if (defined( $vars{$item} )) {
+		while ( $count <= 1 ) {
+			if ( defined( $vars{$item} ) ) {
 				foreach my $var (@var_keys) {
-					my $val=$vars{$var};
-					$vars{$item}=~s/\[\=\= *$var *\=\=\]/$val/g;
+					my $val = $vars{$var};
+					$vars{$item} =~ s/\[\=\= *$var *\=\=\]/$val/g;
 				}
 			}
 
@@ -175,14 +191,14 @@ sub parse {
 	}
 
 	# put all the vars together
-	$count=0;
-	while ($count <= 3 ) {
+	$count = 0;
+	while ( $count <= 1 ) {
 		foreach my $item (@var_keys) {
 			foreach my $var (@var_keys) {
 				foreach my $var (@var_keys) {
-					if ($var ne $item) {
-						my $val=$vars{$var};
-						$vars{$item}=~s/\[\=\= *$var *\=\=\]/$val/g;
+					if ( $var ne $item ) {
+						my $val = $vars{$var};
+						$vars{$item} =~ s/\[\=\= *$var *\=\=\]/$val/g;
 					}
 				}
 			}
@@ -193,44 +209,42 @@ sub parse {
 
 	# process the pre_regexp
 	$count = 0;
-	while ($count <= 3 ) {
-		my $count2=0;
-		while (defined($pre_regexp[$count2])) {
+	while ( $count <= 1 ) {
+		my $count2 = 0;
+		while ( defined( $pre_regexp[$count2] ) ) {
 			foreach my $var (@var_keys) {
-				my $val=$vars{$var};
-				$pre_regexp[$count2]=~s/\[\=\= *$var *\=\=\]/$val/g;
+				my $val = $vars{$var};
+				$pre_regexp[$count2] =~ s/\[\=\= *$var *\=\=\]/$val/g;
 			}
 
 			$count2++;
 		}
 		$count++;
-	};
+	}
 
 	# process the regexp
 	$count = 0;
-	while ($count <= 3 ) {
-		my $count2=0;
-		while (defined($regexp[$count2])) {
+	while ( $count <= 1 ) {
+		my $count2 = 0;
+		while ( defined( $regexp[$count2] ) ) {
 			foreach my $var (@var_keys) {
-				my $val=$vars{$var};
-				$regexp[$count2]=~s/\[\=\= *$var *\=\=\]/$val/g;
+				my $val = $vars{$var};
+				$regexp[$count2] =~ s/\[\=\= *$var *\=\=\]/$val/g;
 			}
 
 			$count2++;
 		}
 		$count++;
-	};
+	}
 
-	my $conf={
-			  regexp=>\@regexp,
-			  pre_regexp=>\@pre_regexp,
-			  vars=>\%vars,
-			  vars_order=>\@vars_order,
-			  start_chomp=>$start_chomp,
-			  start_pattern=>$start_pattern,
-			  };
-
-	return $conf;
+	return {
+			regexp        => \@regexp,
+			pre_regexp    => \@pre_regexp,
+			vars          => \%vars,
+			vars_order    => \@vars_order,
+			start_chomp   => $start_chomp,
+			start_pattern => $start_pattern,
+			};
 }
 
 =head1 Baphomet YAML Schema
