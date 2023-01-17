@@ -52,8 +52,6 @@ sub load{
 								  lines=>$conf->{lines},
 								  );
 
-	$object->{vars}=$conf->{vars};
-
 	return $object;
 }
 
@@ -182,7 +180,7 @@ sub parse {
 		}
 
 		if ( defined( $confs->{$conf}{start_pattern} ) ) {
-			$start_chomp = $confs->{$conf}{start_pattern};
+			$start_pattern = $confs->{$conf}{start_pattern};
 		}
 
 		if ( defined( $confs->{$conf}{lines} ) ) {
@@ -259,6 +257,18 @@ sub parse {
 			$count2++;
 		}
 		$count++;
+	}
+
+	# process the start_pattern
+	if (defined($start_pattern)) {
+		$count = 0;
+		while ( $count <= 1 ) {
+			foreach my $var (@var_keys) {
+				my $val = $vars{$var};
+				$start_pattern =~ s/\[\=\= *$var *\=\=\]/$val/g;
+			}
+			$count++;
+		}
 	}
 
 	return {

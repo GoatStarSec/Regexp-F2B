@@ -83,19 +83,43 @@ ok( $worked eq '0', 'all undef check' ) or diag("Created a object when all requi
 $worked = 0;
 $tests_ran++;
 eval {
-	my $object = Regexp::F2B::Baphomet_YAML->load(file=>'t/baphomet/common.yaml');
+	my $object = Regexp::F2B::Baphomet_YAML->load( file => 't/baphomet/common.yaml' );
 	$worked = 1;
 };
-ok( $worked eq '0', 'load common' ) or diag( "Loaded common.yaml, which a include and not a full rule file..." );
+ok( $worked eq '0', 'load common' ) or diag("Loaded common.yaml, which a include and not a full rule file...");
 
 # make sure it works with a known good file
 $worked = 0;
 $tests_ran++;
 eval {
-	my $object = Regexp::F2B::Baphomet_YAML->load(file=>'t/baphomet/fastlog_NetScan.yaml');
-	if (ref($object) ne 'Regexp::F2B') {
-		die('ref($object) is "'.ref($object).'" and not Regexp::F2B... '.Dumper($object));
+	my $object = Regexp::F2B::Baphomet_YAML->load( file => 't/baphomet/fastlog_NetScan.yaml' );
+	if ( ref($object) ne 'Regexp::F2B' ) {
+		die( 'ref($object) is "' . ref($object) . '" and not Regexp::F2B... ' . Dumper($object) );
 	}
+
+	if ( $object->{lines} ne 1 ) {
+		die( '$object->{lines} ne 1... ' . Dumper($object) );
+	}
+
+	if ( $object->{start_chomp} ne 1 ) {
+		die( '$object->{start_chomp} ne 1... ' . Dumper($object) );
+	}
+
+	if (
+		$object->{start_pattern} ne '^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] ' )
+	{
+		die(
+			'$object->{start_pattern} ne \'^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] \'... '
+				. Dumper($object) );
+	}
+
+	if ( $object->{regexp}[0] ne
+		'^.*\\[\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)\\] [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] \\[Classification\\: (?<class>Detection of a Network Scan) \\] \\[Priority\\: (?(<pri>)\\d+)\\] \\-\\-\\> \\{(?<proto>[a-zA-Z0-9]+)\\} <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+).*$'
+		)
+	{
+		die( '$object->{regexp}[0] is not the expected ressults... ' . Dumper($object) );
+	}
+
 	$worked = 1;
 };
 ok( $worked eq '1', 'load all' ) or diag( "Failed to load a known good files... " . $@ );
