@@ -32,7 +32,7 @@ our $VERSION = '0.0.1';
 
 =head2 parse
 
-Parses the specified file.
+Parses the specified file and makes the requires substitions.
 
     my $conf=parse(file=>'foo.yaml',vars=>$vars);
 
@@ -162,7 +162,7 @@ sub parse {
 	@vars_order=reverse(@vars_order);
 	my $count=0;
 	foreach my $item (@vars_order) {
-		while ($count <= 1 ) {
+		while ($count <= 3 ) {
 			if (defined( $vars{$item} )) {
 				foreach my $var (@var_keys) {
 					my $val=$vars{$var};
@@ -176,7 +176,7 @@ sub parse {
 
 	# put all the vars together
 	$count=0;
-	while ($count <= 1 ) {
+	while ($count <= 3 ) {
 		foreach my $item (@var_keys) {
 			foreach my $var (@var_keys) {
 				foreach my $var (@var_keys) {
@@ -191,9 +191,39 @@ sub parse {
 		$count++;
 	}
 
+	# process the pre_regexp
+	$count = 0;
+	while ($count <= 3 ) {
+		my $count2=0;
+		while (defined($pre_regexp[$count2])) {
+			foreach my $var (@var_keys) {
+				my $val=$vars{$var};
+				$pre_regexp[$count2]=~s/\[\=\= *$var *\=\=\]/$val/g;
+			}
+
+			$count2++;
+		}
+		$count++;
+	};
+
+	# process the regexp
+	$count = 0;
+	while ($count <= 3 ) {
+		my $count2=0;
+		while (defined($regexp[$count2])) {
+			foreach my $var (@var_keys) {
+				my $val=$vars{$var};
+				$regexp[$count2]=~s/\[\=\= *$var *\=\=\]/$val/g;
+			}
+
+			$count2++;
+		}
+		$count++;
+	};
+
 	my $conf={
 			  regexp=>\@regexp,
-			  pre_regexp=>\@regexp,
+			  pre_regexp=>\@pre_regexp,
 			  vars=>\%vars,
 			  vars_order=>\@vars_order,
 			  start_chomp=>$start_chomp,

@@ -1,7 +1,9 @@
 ---
-includes: common.yaml
-regexp: '[== fastlog_chomped_with_class  ==]'
+includes:
+- common.yaml
+regexp:
+- '[== fastlog_chomped_with_class  ==]'
 start_chomp: 1
 start_pattern: '[== fastlog_chomp ==]'
 vars:
-  fastlog_class_to_use: Successful Administrator Privilege Gain
+  fastlog_class_to_use: Unsuccessful Admin Privilege

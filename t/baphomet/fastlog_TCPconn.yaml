@@ -1,6 +1,8 @@
 ---
-includes: common.yaml
-regexp: '[== fastlog_chomped_with_class  ==]'
+includes:
+- common.yaml
+regexp:
+- '[== fastlog_chomped_with_class  ==]'
 start_chomp: 1
 start_pattern: '[== fastlog_chomp ==]'
 vars:

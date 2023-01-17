@@ -25,9 +25,8 @@ ok( $worked eq '0', 'all undef check' ) or diag("Created a object when all requi
 $worked = 0;
 $tests_ran++;
 eval {
-#	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/common.yaml' );
+	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/common.yaml' );
 	$object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/fastlog_MiscAtk.yaml' );
-die(Dumper($object));
 	$worked = 1;
 };
 ok( $worked eq '1', 'file check' ) or diag( "Failed to load a known good files... " . $@ );
