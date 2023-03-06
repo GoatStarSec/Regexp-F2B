@@ -9,6 +9,7 @@ use JSON;
 use Regexp::F2B;
 use Data::Dumper;
 use Regexp::F2B::INI;
+use Regexp::F2B::Baphomet_YAML;
 
 $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Terse    = 1;
@@ -170,4 +171,9 @@ if ( $action eq 'proc_log' ) {
 			print Dumper(@itemsA);
 		}
 	}
+}
+
+if ( $action eq 'baphomet_test' ) {
+	my $results=Regexp::F2B::Baphomet_YAML->test_yaml;
+
 }

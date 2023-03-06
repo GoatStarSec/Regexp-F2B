@@ -26,7 +26,7 @@ our $VERSION = '0.0.1';
     
     my $f2b_regexp_obj=Regexp::F2B::Baphomet_YAML->load('foo.yaml');
     
-    print Dumper($conf);
+    print Dumper($f2b_regexp_obj);
 
 =head1 METHODS
 
@@ -38,19 +38,19 @@ Load the specified file.
 
 =cut
 
-sub load{
+sub load {
 	my ( $blank, %opts ) = @_;
 
-	my $conf=Regexp::F2B::Baphomet_YAML->parse( %opts );
+	my $conf = Regexp::F2B::Baphomet_YAML->parse(%opts);
 
 	my $object = Regexp::F2B->new(
-								  regexp=> $conf->{regexp},
-								  pre_regexp=>$conf->{pre_regexp},
-								  start_chomp=>$conf->{start_chomp},
-								  start_pattern=>$conf->{start_pattern},
-								  vars=>$conf->{vars},
-								  lines=>$conf->{lines},
-								  );
+		regexp        => $conf->{regexp},
+		pre_regexp    => $conf->{pre_regexp},
+		start_chomp   => $conf->{start_chomp},
+		start_pattern => $conf->{start_pattern},
+		vars          => $conf->{vars},
+		lines         => $conf->{lines},
+	);
 
 	return $object;
 }
@@ -144,7 +144,7 @@ sub parse {
 	my $start_pattern;
 	my @pre_regexp;
 	my @regexp;
-	my $lines=1;
+	my $lines = 1;
 
 	#	my $use_template;
 	#	my %template_config;
@@ -260,7 +260,7 @@ sub parse {
 	}
 
 	# process the start_pattern
-	if (defined($start_pattern)) {
+	if ( defined($start_pattern) ) {
 		$count = 0;
 		while ( $count <= 1 ) {
 			foreach my $var (@var_keys) {
@@ -272,14 +272,149 @@ sub parse {
 	}
 
 	return {
-			regexp        => \@regexp,
-			pre_regexp    => \@pre_regexp,
-			vars          => \%vars,
-			vars_order    => \@vars_order,
-			start_chomp   => $start_chomp,
-			start_pattern => $start_pattern,
-			lines=>$lines,
-			};
+		regexp        => \@regexp,
+		pre_regexp    => \@pre_regexp,
+		vars          => \%vars,
+		vars_order    => \@vars_order,
+		start_chomp   => $start_chomp,
+		start_pattern => $start_pattern,
+		lines         => $lines,
+	};
+}
+
+=head2 test_yaml
+
+Tests the specified YAML.
+
+One argument named file is taken and that the file to test.
+
+    my $results = Regexp::F2B::Baphomet_YAML->test_yaml(file=>'foo.yaml');
+    if ( $results->{error} ){
+        use Data::Dumper;
+        print "Error: " . $results->{errorString} . "\n" . Dumper( $results );
+    }else{
+        print "loaded and tested fine\n";
+    }
+
+The results returned are a hash.
+
+    - error :: If there is an error or not. True if error.
+        - type :: Boolean
+
+    - errorString :: A description of the error.
+        - type :: String
+
+=cut
+
+sub test_yaml {
+	my ( $blank, %opts ) = @_;
+
+	if ( !defined( $opts{file} ) ) {
+		die('No file specified');
+	}
+
+	my $to_return = {
+		error       => 0,
+		errorString => '',
+		obj         => undef,
+		warnings    => [],
+	};
+
+	my $obj;
+	eval {
+		$obj = Regexp::F2B::Baphomet_YAML->load( { file => $opts{file} } );
+		$to_return->{obj} = $obj;
+	};
+	if ($@) {
+		$to_return->{error} = 1, $to_return->{errorString} = $@;
+		return $to_return;
+	}
+
+	my $ypp      = YAML::PP->new;
+	my $raw_conf = $ypp->load_file( $opts{file} );
+
+	if ( !defined( $raw_conf->{tests} ) ) {
+		push( @{ $to_return->{warnings} }, '.tests does not exist' );
+		return $to_return;
+	}
+
+	# if it is not a hash, no point in going
+	if ( ref( $raw_conf->{tests} ) ne 'HASH' ) {
+		push( @{ $to_return->{warnings} }, '.tests exist is not a HASH, but ref type ' . ref( $raw_conf->tests ) );
+		return $to_return;
+	}
+
+	# sort the tests so they are ran in a consistent order
+	my @tests = sort( keys( %{ $raw_conf->{tests} } ) );
+	if ( !defined( $tests[0] ) ) {
+		push( @{ $to_return->{warnings} }, '.tests exists but has no tests' );
+		return $to_return;
+	}
+
+	# begin running each tests
+	foreach my $test (@tests) {
+		if ( ref( $raw_conf->{tests}{$test} ) eq 'HASH' ) {
+			my $test = 1;
+
+			#
+			if ( !defined( $raw_conf->{tests}{$test}{line} ) || !defined( $raw_conf->{tests}{$test}{found} ) ) {
+				$test = 0;
+				push( @{ $to_return->{warnings} }, 'test "' . $test . '" is missing either found or line' );
+			}
+
+			#
+			if ( $test && $raw_conf->{tests}{$test}{found} ) {
+				if ( !defined( $raw_conf->{tests}{$test}{data} ) ) {
+					$test = 0;
+					push( @{ $to_return->{warnings} },
+						'test "' . $test . '" has found set to true, but data is undef' );
+				}
+			}
+			elsif ( $test && !$raw_conf->{tests}{$test}{found} ) {
+				if ( !defined( $raw_conf->{tests}{$test}{undefed} ) ) {
+					$test = 0;
+					push(
+						@{ $to_return->{warnings} },
+						'test "' . $test . '" has found set to true, but undefed is undef'
+					);
+				}
+			}
+
+			# if testing is continuing, re-init if needed
+			if ( $test && defined( $raw_conf->{tests}{$test}{vars} ) ) {
+				eval {
+					$obj = Regexp::F2B::Baphomet_YAML->load(
+						file => $opts{file},
+						vars => $raw_conf->{tests}{$test}{vars}
+					);
+					$to_return->{obj} = $obj;
+				};
+				if ($@) {
+					$test = 0;
+					$obj  = undef;
+					push( @{ $to_return->{warnings} }, 'test "' . $test . '" failed to reinit with new vars' );
+				}
+
+			}
+
+			# only will trigger on next test
+			if ( $test && !defined($obj) ) {
+				push(
+					@{ $to_return->{warnings} },
+					'test "' . $test . '" can not be run as a previous test tried to reinit the obj and failed'
+				);
+			}
+
+		}
+		else {
+			push(
+				@{ $to_return->{warnings} },
+				'test "' . $test . '" is not a HASH, but type ' . ref( $raw_conf->{tests}{$test} )
+			);
+		}
+	}
+
+	return $to_return;
 }
 
 =head1 Baphomet YAML Schema
@@ -308,18 +443,6 @@ There are several vars.
     - pre_regexp :: An optional array regexps to used for matching lines and extracting content.
 
     - regexp :: An array of regexps to use.
-
-=cut
-
-#    - use_template :: A 0 or 1 boolean for if L<Template> should be used or not.
-#        - Default :: 0
-
-#    - template_config :: The config to pass to L<Template>. Include INCLUDE_PATH will be excluded if defined.
-
-#    - template_vars :: Additional vars to pass to template if used. 'vars', 'start_chomp', and 'start_pattern'
-#                       reserved variable names and as those from above will be passed as those.
-
-=pod
 
     - tests :: A hash of tests for perform. See the relevant section below on that.
         - Default :: undef
@@ -355,16 +478,6 @@ Files also must be in the same directory as the file being read.
     - pre_regexp :: New items will be appended to the end.
 
     - regexp :: New items will be appended to the end.
-
-=cut
-
-#    - use_template ::  Can be set if not already set.
-
-#    - template_config :: May be added to, but no previously defined item may be replaced.
-
-#    - template_vars :: May be added to, but no previously defined item may be replaced.
-
-=pod
 
     - vars_order :: New items will be appended to the end.
 
@@ -438,11 +551,30 @@ It will match either a IPv4 or IPv6 address.
 This is a hash of hash. The expected keys are below. The keys of the top level hash is the
 test name. The following keys for each test are available.
 
+When vars is defined, it will re-init the object. Failure to re-init the object will mean
+subsequent tests fail till vars is defined agained.
+
+Tests are ran in key name order.
+
     - line :: The log line to feed it.
     - found :: IF found should be 0 or 1.
     - data :: A hash of expected found captures and results.
     - undefed :: A list captures that sould not be defined.
     - vars :: A hash of vars to be used specified for passing at object creation.
+              If not defined, a empty hash is used.
+
+Always required are as below.
+
+    line
+    found
+
+If found is '0', the following are required...
+
+    undefed
+
+If found is '1', the following are required...
+
+    data
 
 Example...
 
