@@ -232,6 +232,15 @@ sub new {
 			$has_finder = 1;
 		}
 
+		if ( $self->{regexp}[$int] =~ /\<SRC\>/ ) {
+			$self->{regexp}[$int] =~ s/\<SRC\>/(?<SRC>$IPv4_re|$IPv6_re)/;
+			$has_finder = 1;
+		}
+		if ( $self->{regexp}[$int] =~ /\<DEST\>/ ) {
+			$self->{regexp}[$int] =~ s/\<DEST\>/(?<DEST>$IPv4_re|$IPv6_re)/;
+			$has_finder = 1;
+		}
+
 		# if it actually does not match anything, remove it
 		if ( !$has_finder ) {
 			push( @{ $to_drop->{regexp} }, $int );
