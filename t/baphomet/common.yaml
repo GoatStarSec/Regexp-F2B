@@ -8,10 +8,10 @@ vars:
   rfc3164_syslog_id: "^(?<LOG_SRC_HOST>[A-Za-z.0-1]+)\\
     [== rfc3164_syslog_log_src ==]\\:\\ "
   rfc5424_syslog_date: ""
-  snort_rule_id: "\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)"
-  fastlog_class: "\\[Classification\\: (?<class>[a-zA-Z0-9\\ \\-]+) \\]"
-  fastlog_class_with_class: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==]) \\]"
-  fastlog_pri: "\\[Priority\\: (?(pri)\\d+)\\]"
+  snort_rule_id: "(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)"
+  fastlog_class: "\\[Classification\\: (?<class>[a-zA-Z0-9\\ \\-]+)\\]"
+  fastlog_class_with_class: "\\[Classification\\: (?<class>[== fastlog_class_to_use ==])\\]"
+  fastlog_pri: "\\[Priority\\: (?<pri>\\d+)\\]"
   fastlog_proto: "\\{(?<proto>[a-zA-Z0-9]+)\\}"
   fastlog_chomp: "^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] "
   fastlog_chomped: "\\[[== snort_rule_id  ==]\\] [a-zA-Z0-9\\
@@ -19,14 +19,14 @@ vars:
     [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==]
     <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
   fastlog_chomped_with_class: "\\[[== snort_rule_id  ==]\\]
-    [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class_with_class ==]
-    [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
+    [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class_with_class ==]
+    [== fastlog_pri ==] [== fastlog_proto ==]
+    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
   fastlog: "[== fastlog_chomp ==]\\[[== snort_rule_id  ==]\\]
-    [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class ==]
-    [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
+    [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class ==]
+    [== fastlog_pri ==] [== fastlog_proto ==]
+    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
   fastlog_with_class: "[== fastlog_chomp ==]\\[[== snort_rule_id  ==]\\]
-    [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class_with_class ==]
-    [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
+    [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class_with_class ==]
+    [== fastlog_pri ==] [== fastlog_proto ==]
+    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
