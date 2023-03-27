@@ -14,6 +14,6 @@ tests:
       rev: '123'
       rule: '0123456'
     found: 1
-    line: '03/26/2023-19:30:50.356934  [**] [1:0123456:123] Rule Description Goes Here [**] [Classification: Successful Credential Theft Detected] [Priority: 2] {TCP} 5.6.7.8:6163 -> 1.2.3.4:443'
+    line: '03/26/2023-19:30:50.356934  [**] [1:0123456:123] Rule Description Goes Here [**] [Classification: Unknown Traffic] [Priority: 2] {TCP} 5.6.7.8:6163 -> 1.2.3.4:443'
 vars:
-  fastlog_class_to_use: Successful Credential Theft Detected
+  fastlog_class_to_use: Unknown Traffic

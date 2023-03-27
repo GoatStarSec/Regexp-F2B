@@ -5,5 +5,15 @@ regexp:
 - '[== fastlog_chomped_with_class  ==]'
 start_chomp: 1
 start_pattern: '[== fastlog_chomp ==]'
+tests:
+  found_1:
+    data:
+      DEST: 1.2.3.4
+      SRC: 5.6.7.8
+      group: '1'
+      rev: '123'
+      rule: '0123456'
+    found: 1
+    line: '03/26/2023-19:30:50.356934  [**] [1:0123456:123] Rule Description Goes Here [**] [Classification: Misc Attack] [Priority: 2] {TCP} 5.6.7.8:6163 -> 1.2.3.4:443'
 vars:
   fastlog_class_to_use: Misc Attack

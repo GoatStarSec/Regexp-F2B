@@ -37,8 +37,9 @@ my $pretty          = 1;
 my $nopretty;
 my $log;
 my $vars_string;
-my $vars        = {};
-my $start_chomp = 1;
+my $vars           = {};
+my $start_chomp    = 1;
+my $warnings_fatal = 1;
 
 GetOptions(
 	'version' => \$version,
@@ -53,6 +54,7 @@ GetOptions(
 	'ovt=s'   => \$output_var_type,
 	'vars=s'  => \$vars_string,
 	'cs=s'    => \$start_chomp,
+	'wf=s'    => \$warnings_fatal
 );
 
 if ( $output_var_type ne 'array' && $output_var_type ne 'hash' ) {
@@ -174,6 +176,24 @@ if ( $action eq 'proc_log' ) {
 }
 
 if ( $action eq 'baphomet_test' ) {
-	my $results=Regexp::F2B::Baphomet_YAML->test_yaml;
+	my $results = Regexp::F2B::Baphomet_YAML->test_yaml( file => $file );
 
+	# if this exists, it was the initiated object
+	# JSON does not handle blessed items nicely
+	if ( defined( $results->{obj} ) ) {
+		$results->{obj}=Dumper($results->{obj});
+	}
+
+	# print the results as JSON
+	my $json = JSON->new;
+	$json->canonical(1);
+	$json->pretty($pretty);
+	print $json->encode($results);
+
+	# if warnings are set to fatal, print the error and exist
+	if ( defined( $results->{warnings}[0] ) && $warnings_fatal ) {
+		exit 1;
+	}
+
+	exit $results->{error};
 }

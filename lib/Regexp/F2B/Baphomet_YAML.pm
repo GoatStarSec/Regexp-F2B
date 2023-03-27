@@ -318,11 +318,12 @@ sub test_yaml {
 		errorString => '',
 		obj         => undef,
 		warnings    => [],
+		ran         => {},
 	};
 
 	my $obj;
 	eval {
-		$obj = Regexp::F2B::Baphomet_YAML->load( { file => $opts{file} } );
+		$obj = Regexp::F2B::Baphomet_YAML->load( file => $opts{file} );
 		$to_return->{obj} = $obj;
 	};
 	if ($@) {
@@ -353,35 +354,39 @@ sub test_yaml {
 
 	# begin running each tests
 	foreach my $test (@tests) {
-		if ( ref( $raw_conf->{tests}{$test} ) eq 'HASH' ) {
-			my $test = 1;
+		$to_return->{ran}{$test} = { warnings => [], results => 0, found => undef };
 
-			#
+		if ( ref( $raw_conf->{tests}{$test} ) eq 'HASH' ) {
+			my $test_results = 1;
+
+			# make sure we have the first two of the required items
 			if ( !defined( $raw_conf->{tests}{$test}{line} ) || !defined( $raw_conf->{tests}{$test}{found} ) ) {
-				$test = 0;
-				push( @{ $to_return->{warnings} }, 'test "' . $test . '" is missing either found or line' );
+				$test_results = 0;
+				my $warning = 'test "' . $test . '" is missing either found or line';
+				push( @{ $to_return->{warnings} },               $warning );
+				push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 			}
 
-			#
-			if ( $test && $raw_conf->{tests}{$test}{found} ) {
+			# make sure we have the expected config item based on if it is found or not
+			if ( $test_results && $raw_conf->{tests}{$test}{found} ) {
 				if ( !defined( $raw_conf->{tests}{$test}{data} ) ) {
-					$test = 0;
-					push( @{ $to_return->{warnings} },
-						'test "' . $test . '" has found set to true, but data is undef' );
+					$test_results = 0;
+					my $warning = 'test "' . $test . '" has found set to true, but data is undef';
+					push( @{ $to_return->{warnings} },               $warning );
+					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 				}
 			}
-			elsif ( $test && !$raw_conf->{tests}{$test}{found} ) {
+			elsif ( $test_results && !$raw_conf->{tests}{$test}{found} ) {
 				if ( !defined( $raw_conf->{tests}{$test}{undefed} ) ) {
-					$test = 0;
-					push(
-						@{ $to_return->{warnings} },
-						'test "' . $test . '" has found set to true, but undefed is undef'
-					);
+					$test_results = 0;
+					my $warning = 'test "' . $test . '" has found set to true, but undefed is undef';
+					push( @{ $to_return->{warnings} },               $warning );
+					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 				}
 			}
 
 			# if testing is continuing, re-init if needed
-			if ( $test && defined( $raw_conf->{tests}{$test}{vars} ) ) {
+			if ( $test_results && defined( $raw_conf->{tests}{$test}{vars} ) ) {
 				eval {
 					$obj = Regexp::F2B::Baphomet_YAML->load(
 						file => $opts{file},
@@ -390,21 +395,40 @@ sub test_yaml {
 					$to_return->{obj} = $obj;
 				};
 				if ($@) {
-					$test = 0;
-					$obj  = undef;
-					push( @{ $to_return->{warnings} }, 'test "' . $test . '" failed to reinit with new vars' );
+					$test_results = 0;
+					$obj          = undef;
+					my $warning = 'test "' . $test . '" failed to reinit with new vars';
+					push( @{ $to_return->{warnings} },               $warning );
+					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 				}
 
 			}
 
 			# only will trigger on next test
-			if ( $test && !defined($obj) ) {
-				push(
-					@{ $to_return->{warnings} },
-					'test "' . $test . '" can not be run as a previous test tried to reinit the obj and failed'
-				);
+			if ( $test_results && !defined($obj) ) {
+				$test_results = 0;
+				my $warning
+					= 'test "'
+					. $test
+					. '" can not be run as a previous test tried to reinit the obj and failed test "'
+					. $test
+					. '" can not be run as a previous test tried to reinit the obj and failed';
+				push( @{ $to_return->{warnings} }, $warning );
 			}
 
+			if ($test_results) {
+				eval {
+					$to_return->{ran}{$test}{found} = $to_return->{obj}->proc_line( $raw_conf->{tests}{$test}{line} );
+				};
+
+				if ($@) {
+					my $warning = 'test "' . $test . '" proc_line failed... ' . $@;
+					push( @{ $to_return->{warnings} },               $warning );
+					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+				}
+			}
+
+			$to_return->{ran}{$test}{results} = $test_results;
 		}
 		else {
 			push(
