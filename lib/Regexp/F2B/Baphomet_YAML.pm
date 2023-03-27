@@ -318,6 +318,7 @@ sub test_yaml {
 		errorString => '',
 		obj         => undef,
 		warnings    => [],
+		errors      => [],
 		ran         => {},
 	};
 
@@ -352,9 +353,11 @@ sub test_yaml {
 		return $to_return;
 	}
 
+	#
 	# begin running each tests
+	#
 	foreach my $test (@tests) {
-		$to_return->{ran}{$test} = { warnings => [], results => 0, found => undef };
+		$to_return->{ran}{$test} = { warnings => [], results => 0, found => undef, errors => [] };
 
 		if ( ref( $raw_conf->{tests}{$test} ) eq 'HASH' ) {
 			my $test_results = 1;
@@ -397,9 +400,9 @@ sub test_yaml {
 				if ($@) {
 					$test_results = 0;
 					$obj          = undef;
-					my $warning = 'test "' . $test . '" failed to reinit with new vars';
-					push( @{ $to_return->{warnings} },               $warning );
-					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+					my $error = 'test "' . $test . '" failed to reinit with new vars';
+					push( @{ $to_return->{errors} },              $error );
+					push( @{ $to_return->{test}{$test}{errors} }, $error );
 				}
 
 			}
@@ -416,15 +419,46 @@ sub test_yaml {
 				push( @{ $to_return->{warnings} }, $warning );
 			}
 
+			#
+			# see if we can actually process a line
+			#
 			if ($test_results) {
 				eval {
 					$to_return->{ran}{$test}{found} = $to_return->{obj}->proc_line( $raw_conf->{tests}{$test}{line} );
 				};
-
 				if ($@) {
 					my $warning = 'test "' . $test . '" proc_line failed... ' . $@;
 					push( @{ $to_return->{warnings} },               $warning );
 					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+				}
+				else {
+					#
+					# we processed it, now make sure we have all the expected data items
+					#
+					foreach my $item ( keys( %{ $raw_conf->{tests}{$test}{data} } ) ) {
+						if ( !defined( $to_return->{ran}{$test}{found}{data}{$item} ) ) {
+							$test_results = 0;
+							my $warning = 'test "' . $test . '" is missing data item "' . $item . '"';
+							push( @{ $to_return->{warnings} },               $warning );
+							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+						}
+						elsif ( $to_return->{ran}{$test}{found}{data}{$item} ne $raw_conf->{tests}{$test}{data}{$item} )
+						{
+							$test_results = 0;
+							my $warning
+								= 'test "'
+								. $test
+								. '" data item "'
+								. $item
+								. '" has expected value of "'
+								. $raw_conf->{tests}{$test}{data}{$item}
+								. '" but "'
+								. $to_return->{ran}{$test}{found}{data}{$item}
+								. '" found';
+							push( @{ $to_return->{warnings} },               $warning );
+							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+						}
+					}
 				}
 			}
 
