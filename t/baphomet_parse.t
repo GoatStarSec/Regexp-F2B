@@ -96,11 +96,11 @@ $tests_ran++;
 eval {
 	my $object = Regexp::F2B::Baphomet_YAML->parse( file => 't/baphomet/common.yaml' );
 
-	if ( $object->{vars}{fastlog_pri} ne '\\[Priority\\: (?(pri)\\d+)\\]' ) {
-		die 'parsing failed... $object->{vars}{fastlog_pri} ne \'\\[Priority\\: (?(pri)\\d+)\\]\'';
+	if ( $object->{vars}{fastlog_pri} ne '\\[Priority\\: (?<pri>\\d+)\\]' ) {
+		die 'parsing failed... $object->{vars}{fastlog_pri} ne \'\\[Priority\\: (?<pri>\\d+)\\]\'';
 	}
-	elsif ( $object->{vars}{snort_rule_id} ne '\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)' ) {
-		die 'parsing failed... $object->{vars}{snort_rule_id} ne \'\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)\'... '
+	elsif ( $object->{vars}{snort_rule_id} ne '(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)' ) {
+		die 'parsing failed... $object->{vars}{snort_rule_id} ne \'(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)\'... '
 			. $object->{vars}{snort_rule_id};
 	}
 	elsif ( $object->{vars}{fastlog_proto} ne '\\{(?<proto>[a-zA-Z0-9]+)\\}' ) {
@@ -110,7 +110,7 @@ eval {
 	elsif ( $object->{vars}{log_src} ne '[A-Za-z0-9\\/]+' ) {
 		die 'parsing failed... $object->{vars}{log_src} ne \'[A-Za-z0-9\\/]+\'... ' . $object->{vars}{log_src};
 	}
-	elsif ( $object->{vars}{fastlog_with_class} ne '^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] \\[\\(?<group>d+)\\:\\(?<rule>d+)\\:\\(?<rev>d+)\\] [a-zA-Z0-9\\ \\-\\(\\)\\:] \\[\\*\\*\\] \\[Classification\\: (?<class>[== fastlog_class_to_use ==]) \\] \\[Priority\\: (?(pri)\\d+)\\] \\-\\-\\> \\{(?<proto>[a-zA-Z0-9]+)\\} <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)' ) {
+	elsif ( $object->{vars}{fastlog_with_class} ne '^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] \\[(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)\\] [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] \\[Classification\\: (?<class>[== fastlog_class_to_use ==])\\] \\[Priority\\: (?<pri>\\d+)\\] \\{(?<proto>[a-zA-Z0-9]+)\\} <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)' ) {
 		die  Dumper($object->{vars}{fastlog_with_class});
 	}
 

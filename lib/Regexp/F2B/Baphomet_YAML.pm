@@ -459,6 +459,17 @@ sub test_yaml {
 							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 						}
 					}
+					#
+					# now that we have checked that we got the expected items, check for ones we want to make
+					# sure we did not get
+					#
+					foreach my $item ( @{ $raw_conf->{tests}{$test}{undefed} } ) {
+						if ( defined( $to_return->{ran}{$test}{found}{data}{$item} ) ) {
+							my $warning = 'test "' . $test . '" has the returned value for "' . $item . '" set to "'.$to_return->{ran}{$test}{found}{data}{$item}.'" but is expected to be undef';
+							push( @{ $to_return->{warnings} },               $warning );
+							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
+						}
+					}
 				}
 			}
 
