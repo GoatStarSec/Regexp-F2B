@@ -17,16 +17,16 @@ vars:
   fastlog_chomped: "\\[[== snort_rule_id  ==]\\] [a-zA-Z0-9\\
     \\-\\(\\)\\:] \\[\\*\\*\\] [== fastlog_class ==]
     [== fastlog_pri ==] \\-\\-\\> [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) <DEST>\\:(?<dst_port>\\d+)"
+    \\[*<SRC>\\]*\\:(?<src_port>\\d+) \\[*<DEST>\\]*\\:(?<dst_port>\\d+)"
   fastlog_chomped_with_class: "\\[[== snort_rule_id  ==]\\]
     [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class_with_class ==]
     [== fastlog_pri ==] [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
+    \\[*<SRC>\\]*\\:(?<src_port>\\d+) \\-+\\> \\[*<DEST>\\]*\\:(?<dst_port>\\d+)"
   fastlog: "[== fastlog_chomp ==]\\[[== snort_rule_id  ==]\\]
     [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class ==]
     [== fastlog_pri ==] [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
+    \\[*<SRC>\\]*\\:(?<src_port>\\d+) \\-+\\> \\[*<DEST>\\]*\\:(?<dst_port>\\d+)"
   fastlog_with_class: "[== fastlog_chomp ==]\\[[== snort_rule_id  ==]\\]
     [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] [== fastlog_class_with_class ==]
     [== fastlog_pri ==] [== fastlog_proto ==]
-    <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)"
+    \\[*<SRC>\\]*\\:(?<src_port>\\d+) \\-+\\> \\[*<DEST>\\]*\\:(?<dst_port>\\d+)"

@@ -110,7 +110,7 @@ eval {
 	elsif ( $object->{vars}{log_src} ne '[A-Za-z0-9\\/]+' ) {
 		die 'parsing failed... $object->{vars}{log_src} ne \'[A-Za-z0-9\\/]+\'... ' . $object->{vars}{log_src};
 	}
-	elsif ( $object->{vars}{fastlog_with_class} ne '^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] \\[(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)\\] [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] \\[Classification\\: (?<class>[== fastlog_class_to_use ==])\\] \\[Priority\\: (?<pri>\\d+)\\] \\{(?<proto>[a-zA-Z0-9]+)\\} <SRC>\\:(?<src_port>\\d+) \\-+\\> <DEST>\\:(?<dst_port>\\d+)' ) {
+	elsif ( $object->{vars}{fastlog_with_class} ne '^\\d\\d\\/\\d\\d\\/\\d\\d\\d\\d\\-\\d\\d\\:\\d\\d\\:\\d\\d\\.\\d+  \\[\\*\\*\\] \\[(?<group>\\d+)\\:(?<rule>\\d+)\\:(?<rev>\\d+)\\] [a-zA-Z0-9\\ \\-\\(\\)\\:]+ \\[\\*\\*\\] \\[Classification\\: (?<class>[== fastlog_class_to_use ==])\\] \\[Priority\\: (?<pri>\\d+)\\] \\{(?<proto>[a-zA-Z0-9]+)\\} \\[*<SRC>\\]*\\:(?<src_port>\\d+) \\-+\\> \\[*<DEST>\\]*\\:(?<dst_port>\\d+)' ) {
 		die  Dumper($object->{vars}{fastlog_with_class});
 	}
 
