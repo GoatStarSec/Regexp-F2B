@@ -15,13 +15,37 @@ $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Terse    = 1;
 
 sub version {
-	print "yqh v. 0.1.1\n";
+	print "regexp-f2b v. 0.0.1\n";
 }
 
 sub help {
 	&version;
 
 	print '
+
+-a <action>    Action to perform.
+-f <file>      File to operate on.
+--np           Do not pretty print JSON.
+-o <output>    Output type... toml, yaml, json, Data::Dumper
+--ovt <type>   Output var type... array, hash
+--log <file>   Log file to operate on.
+
+-h             Print this
+--help         Print this
+-v             Print version
+--version      Print version
+
+
+Actions...
+
+read :: Reads in the F2B file specified via -f and dumps it.
+
+parse :: Reads in the F2B file specified via -f, parses it, and dumps it.
+
+proclog :: Load the F2B file specified via -f, process the file specified
+           via --log, and print the results.
+
+baphomet_test :: Test to see if the specified Baphomet YAML via -f tests out as good.
 ';
 
 }

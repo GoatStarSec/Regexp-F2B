@@ -518,7 +518,7 @@ L<https://metacpan.org/release/Regexp-F2B>
 
 =head1 LICENSE AND COPYRIGHT
 
-This software is Copyright (c) 2022 by Zane C. Bowers-Hadley.
+This software is Copyright (c) 2023 by Zane C. Bowers-Hadley.
 
 This is free software, licensed under:
 

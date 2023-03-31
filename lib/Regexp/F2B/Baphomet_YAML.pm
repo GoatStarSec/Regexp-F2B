@@ -9,7 +9,7 @@ use Regexp::F2B;
 
 =head1 NAME
 
-Regexp::F2B::Baphomet_YAML - Parse Fail2ban style INI files
+Regexp::F2B::Baphomet_YAML - Parse Baphomet YAML rule files
 
 =head1 VERSION
 
@@ -706,7 +706,7 @@ L<https://metacpan.org/release/Regexp-F2B>
 
 =head1 LICENSE AND COPYRIGHT
 
-This software is Copyright (c) 2022 by Zane C. Bowers-Hadley.
+This software is Copyright (c) 2023 by Zane C. Bowers-Hadley.
 
 This is free software, licensed under:
 
@@ -715,4 +715,4 @@ This is free software, licensed under:
 
 =cut
 
-1;    # End of Regexp::F2B::INI
+1;    # End of Regexp::F2B::Baphomet_YAML
