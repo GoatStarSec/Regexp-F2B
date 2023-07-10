@@ -53,7 +53,7 @@ sub load {
 	);
 
 	return $object;
-}
+} ## end sub load
 
 =head2 parse
 
@@ -95,8 +95,7 @@ sub parse {
 	{
 		push( @order,   $file_name );
 		push( @to_read, @{ $confs->{$file_name}{includes} } );
-	}
-	else {
+	} else {
 		push( @order, $file_name );
 	}
 
@@ -132,7 +131,7 @@ sub parse {
 			push( @to_read, @{ $confs->{$item}{includes} } );
 		}
 
-	}
+	} ## end foreach my $item (@to_read)
 
 	# @order is actually reversed given how it is generated
 	# reverse it so it can be used with foreach
@@ -193,7 +192,7 @@ sub parse {
 				$vars{$conf_key} = $confs->{$conf}{vars}{$conf_key};
 			}
 		}
-	}
+	} ## end foreach my $conf (@order)
 
 	# process priority vars
 	my @var_keys = keys(%vars);
@@ -209,8 +208,8 @@ sub parse {
 			}
 
 			$count++;
-		}
-	}
+		} ## end while ( $count <= 1 )
+	} ## end foreach my $item (@vars_order)
 
 	# put all the vars together
 	$count = 0;
@@ -224,10 +223,10 @@ sub parse {
 					}
 				}
 			}
-		}
+		} ## end foreach my $item (@var_keys)
 
 		$count++;
-	}
+	} ## end while ( $count <= 1 )
 
 	# process the pre_regexp
 	$count = 0;
@@ -242,7 +241,7 @@ sub parse {
 			$count2++;
 		}
 		$count++;
-	}
+	} ## end while ( $count <= 1 )
 
 	# process the regexp
 	$count = 0;
@@ -257,7 +256,7 @@ sub parse {
 			$count2++;
 		}
 		$count++;
-	}
+	} ## end while ( $count <= 1 )
 
 	# process the start_pattern
 	if ( defined($start_pattern) ) {
@@ -269,7 +268,7 @@ sub parse {
 			}
 			$count++;
 		}
-	}
+	} ## end if ( defined($start_pattern) )
 
 	return {
 		regexp        => \@regexp,
@@ -280,7 +279,7 @@ sub parse {
 		start_pattern => $start_pattern,
 		lines         => $lines,
 	};
-}
+} ## end sub parse
 
 =head2 test_yaml
 
@@ -378,8 +377,7 @@ sub test_yaml {
 					push( @{ $to_return->{warnings} },               $warning );
 					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
 				}
-			}
-			elsif ( $test_results && !$raw_conf->{tests}{$test}{found} ) {
+			} elsif ( $test_results && !$raw_conf->{tests}{$test}{found} ) {
 				if ( !defined( $raw_conf->{tests}{$test}{undefed} ) ) {
 					$test_results = 0;
 					my $warning = 'test "' . $test . '" has found set to true, but undefed is undef';
@@ -405,7 +403,7 @@ sub test_yaml {
 					push( @{ $to_return->{test}{$test}{errors} }, $error );
 				}
 
-			}
+			} ## end if ( $test_results && defined( $raw_conf->...))
 
 			# only will trigger on next test
 			if ( $test_results && !defined($obj) ) {
@@ -417,21 +415,21 @@ sub test_yaml {
 					. $test
 					. '" can not be run as a previous test tried to reinit the obj and failed';
 				push( @{ $to_return->{warnings} }, $warning );
-			}
+			} ## end if ( $test_results && !defined($obj) )
 
 			#
 			# see if we can actually process a line
 			#
 			if ($test_results) {
 				eval {
-					$to_return->{ran}{$test}{found} = $to_return->{obj}->proc_line( $raw_conf->{tests}{$test}{line} );
+					$to_return->{ran}{$test}{found}
+						= $to_return->{obj}->proc_line( $raw_conf->{tests}{$test}{line} );
 				};
 				if ($@) {
 					my $warning = 'test "' . $test . '" proc_line failed... ' . $@;
 					push( @{ $to_return->{warnings} },               $warning );
 					push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
-				}
-				else {
+				} else {
 					#
 					# we processed it, now make sure we have all the expected data items
 					#
@@ -441,8 +439,8 @@ sub test_yaml {
 							my $warning = 'test "' . $test . '" is missing data item "' . $item . '"';
 							push( @{ $to_return->{warnings} },               $warning );
 							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
-						}
-						elsif ( $to_return->{ran}{$test}{found}{data}{$item} ne $raw_conf->{tests}{$test}{data}{$item} )
+						} elsif (
+							$to_return->{ran}{$test}{found}{data}{$item} ne $raw_conf->{tests}{$test}{data}{$item} )
 						{
 							$test_results = 0;
 							my $warning
@@ -457,34 +455,40 @@ sub test_yaml {
 								. '" found';
 							push( @{ $to_return->{warnings} },               $warning );
 							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
-						}
-					}
+						} ## end elsif ( $to_return->{ran}{$test}{found}{data}...)
+					} ## end foreach my $item ( keys( %{ $raw_conf->{tests}{...}}))
 					#
 					# now that we have checked that we got the expected items, check for ones we want to make
 					# sure we did not get
 					#
 					foreach my $item ( @{ $raw_conf->{tests}{$test}{undefed} } ) {
 						if ( defined( $to_return->{ran}{$test}{found}{data}{$item} ) ) {
-							my $warning = 'test "' . $test . '" has the returned value for "' . $item . '" set to "'.$to_return->{ran}{$test}{found}{data}{$item}.'" but is expected to be undef';
+							my $warning
+								= 'test "'
+								. $test
+								. '" has the returned value for "'
+								. $item
+								. '" set to "'
+								. $to_return->{ran}{$test}{found}{data}{$item}
+								. '" but is expected to be undef';
 							push( @{ $to_return->{warnings} },               $warning );
 							push( @{ $to_return->{tests}{$test}{warnings} }, $warning );
-						}
-					}
-				}
-			}
+						} ## end if ( defined( $to_return->{ran}{$test}{found...}))
+					} ## end foreach my $item ( @{ $raw_conf->{tests}{$test}...})
+				} ## end else [ if ($@) ]
+			} ## end if ($test_results)
 
 			$to_return->{ran}{$test}{results} = $test_results;
-		}
-		else {
+		} else {
 			push(
 				@{ $to_return->{warnings} },
 				'test "' . $test . '" is not a HASH, but type ' . ref( $raw_conf->{tests}{$test} )
 			);
 		}
-	}
+	} ## end foreach my $test (@tests)
 
 	return $to_return;
-}
+} ## end sub test_yaml
 
 =head1 Baphomet YAML Schema
 
@@ -510,6 +514,9 @@ There are several vars.
         - Default :: undef
 
     - pre_regexp :: An optional array regexps to used for matching lines and extracting content.
+                    If defined, <F-CONTENT> and </F-CONTENT> must be defined in it to grab what ever
+                    will be processed via the regexps.
+        - Default :: undef
 
     - regexp :: An array of regexps to use.
 
@@ -612,6 +619,10 @@ These two are meant to be used in combination and only regard as being found if
 matched together.
 
 It will match either a IPv4 or IPv6 address.
+
+=item <F-[A-Za-z0-9\_\-]+> </F-[A-Za-z0-9\_\-]+>
+
+Chunks of text to grab for what ever purpose.
 
 =back
 

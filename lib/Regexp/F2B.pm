@@ -61,8 +61,7 @@ sub new {
 	# make sure we have something sane for lines
 	if ( !defined $opts{lines} ) {
 		$opts{lines} = 1;
-	}
-	else {
+	} else {
 		if ( $opts{lines} !~ /^[0-9]+$/ ) {
 			die( 'lines is set to "' . $opts{lines} . '" which is not numeric' );
 		}
@@ -74,8 +73,7 @@ sub new {
 
 	if ( !defined( $opts{regexp} ) ) {
 		die('regexp is undefined');
-	}
-	else {
+	} else {
 		if ( ref( $opts{regexp} ) ne 'ARRAY' ) {
 			die( 'regexp is a ' . ref( $opts{regexp} ) . ' and not a array' );
 		}
@@ -85,8 +83,7 @@ sub new {
 	while ( defined( $opts{regexp}[$int] ) ) {
 		if ( ref( \$opts{regexp}[$int] ) ne 'SCALAR' ) {
 			die( 'regexp[' . $int . '] is a ' . ref( \$opts{regexp}[$int] ) . ' and not a scalar' );
-		}
-		elsif (ref( \$opts{regexp}[$int] ) ne 'SCALAR'
+		} elsif ( ref( \$opts{regexp}[$int] ) ne 'SCALAR'
 			&& ref( $opts{regexp}[$int] ) ne 'SCALAR' )
 		{
 			die( 'regexp[' . $int . '] is a ' . ref( $opts{regexp}[$int] ) . ' and not a scalar' );
@@ -97,12 +94,11 @@ sub new {
 		}
 
 		$int++;
-	}
+	} ## end while ( defined( $opts{regexp}[$int] ) )
 
 	if ( !defined( $opts{pre_regexp} ) ) {
 		$opts{pre_regexp} = [];
-	}
-	else {
+	} else {
 		if ( ref( $opts{pre_regexp} ) ne 'ARRAY' ) {
 			die( 'regexp is a ' . ref( $opts{pre_regexp} ) . ' and not a array' );
 		}
@@ -151,7 +147,7 @@ sub new {
 			|| $value =~ /\<DNS\>/ )
 		{
 			die( "HOST, CIDR, SUBNET, IP4, IP6, and DNS may only be used in regexp... " . $value );
-		}
+		} ## end if ( $value =~ /\<HOST\>/ || $value =~ /\<CIDR\>/...)
 
 		$value =~ s/\<F\-MLFID\>/(?<FMLFID>/;
 		$value =~ s/\<\/F\-MLFID\>/)/;
@@ -163,7 +159,7 @@ sub new {
 		}
 
 		$int++;
-	}
+	} ## end while ( defined( $self->{pre_regexp}[$int] ) )
 	delete( $self->{pre_regexp} );
 	$self->{pre_regexp} = \@pre_regexp_tmp;
 
@@ -174,6 +170,7 @@ sub new {
 	#
 	$int = 0;
 	while ( defined( $self->{regexp}[$int] ) ) {
+		my $has_finder = 0;
 
 		# we should only have F-CONTENT in pre_regexp
 		if (   $self->{regexp}[$int] =~ /\<F\-CONTENT\>/
@@ -186,9 +183,11 @@ sub new {
 		# process any /F-[A-Za-z0-9\_\-]+/ items
 		if ( $self->{regexp}[$int] =~ /\<F\-[A-Za-z0-9\_]+\>/ ) {
 			$self->{regexp}[$int] =~ s/\<F\-([A-Za-z0-9\_]+)\>/(?<F$1>/g;
+			$has_finder = 1;
 		}
 		if ( $self->{regexp}[$int] =~ /\<\/F\-[A-Za-z0-9\_]+\>/ ) {
 			$self->{regexp}[$int] =~ s/\<\/F\-[A-Za-z0-9\_]+\>/)/g;
+			$has_finder = 1;
 		}
 
 		# add ^ and $ bits as needed
@@ -200,34 +199,27 @@ sub new {
 		}
 
 		# replace various tags with regexps for matching
-		my $has_finder = 0;
 		if ( $self->{regexp}[$int] =~ /\<HOST\>/ ) {
 			$self->{regexp}[$int] =~ s/\<HOST\>/(?<HOST>$IPv4_re|$IPv6_re|[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<ADDR\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<ADDR\>/ ) {
 			$self->{regexp}[$int] =~ s/\<ADDR\>/(?<ADDR>$IPv4_re|$IPv6_re)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<CIDR\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<CIDR\>/ ) {
 			$self->{regexp}[$int]
 				=~ s/\<CIDR\>/(?<CIDR>$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<SUBNET\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<SUBNET\>/ ) {
 			$self->{regexp}[$int]
 				=~ s/\<SUBNET\>/(?<SUBNET>$IPv4_re|$IPv6_re|$IPv4_re\/\\b([1-9]|[12][0-9]|3[0-2])\\b|$IPv6_re\/\\b([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])\\b)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<IP4\>/ ) {
 			$self->{regexp}[$int] =~ s/\<IP4\>/(?<IP4>$IPv4_re)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<IP6\>/ ) {
 			$self->{regexp}[$int] =~ s/\<IP6\>/(?<IP6>$IPv6_re)/;
 			$has_finder = 1;
-		}
-		elsif ( $self->{regexp}[$int] =~ /\<DNS\>/ ) {
+		} elsif ( $self->{regexp}[$int] =~ /\<DNS\>/ ) {
 			$self->{regexp}[$int] =~ s/\<DNS\>/(?<DNS>[a-zA-Z][a-zA-Z\-0-9\.]*[a-zA-Z\-0-9]+)/;
 			$has_finder = 1;
 		}
@@ -256,7 +248,7 @@ sub new {
 		$self->{regexp}[$int] =~ s/\(\?\(([a-zA-Z_0-0][a-zA-Z_0-0]+)\)/(?(<$1>)/g;
 
 		$int++;
-	}
+	} ## end while ( defined( $self->{regexp}[$int] ) )
 
 	# remove any blank items
 	my @items = ( 'pre_regexp', 'regexp' );
@@ -272,7 +264,7 @@ sub new {
 		}
 		delete( $self->{$regexp} );
 		$self->{$regexp} = \@new_array;
-	}
+	} ## end foreach my $regexp (@items)
 
 	# make sure we have atleast one item we can use
 	foreach my $regexp (@items) {
@@ -282,7 +274,7 @@ sub new {
 	}
 
 	return $self;
-}
+} ## end sub new
 
 =head2 proc_lines
 
@@ -332,18 +324,19 @@ sub proc_line {
 	while ( defined( $self->{pre_regexp}[$int] ) && $not_found ) {
 		my $regexp = $self->{pre_regexp}[$int];
 		if ( $joined =~ /$regexp/ ) {
-			if ( defined( $+{'FCONTENT'} ) ) {
+			my %found_items = %+;
+			if ( defined( $found_items{'FCONTENT'} ) ) {
 				$not_found                  = 0;
-				$joined                     = $+{'FCONTENT'};
-				$found->{data}{'F-CONTENT'} = $+{'FCONTENT'};
-				if ( defined( $+{'FMLFID'} ) ) {
-					$found->{data}{'F-MLFID'} = $+{'FMLFID'};
+				$joined                     = $found_items{'FCONTENT'};
+				$found->{data}{'F-CONTENT'} = $found_items{'FCONTENT'};
+				if ( defined( $found_items{'FMLFID'} ) ) {
+					$found->{data}{'F-MLFID'} = $found_items{'FMLFID'};
 				}
 			}
-		}
+		} ## end if ( $joined =~ /$regexp/ )
 
 		$int++;
-	}
+	} ## end while ( defined( $self->{pre_regexp}[$int] ) ...)
 
 	# we did not any matching lines, so just return
 	if ( defined( $self->{pre_regexp}[$int] ) && $not_found ) {
@@ -367,20 +360,19 @@ sub proc_line {
 					my $new_key = $key;
 					$new_key =~ s/^F/F-/;
 					$found->{data}{$new_key} = $found_items{$key};
-				}
-				else {
+				} else {
 					$found->{data}{$key} = $found_items{$key};
 				}
-			}
+			} ## end foreach my $key ( keys(%found_items) )
 			$not_found = 0;
 			$found->{found} = 1;
-		}
+		} ## end if ( $joined =~ /$regexp/ )
 
 		$int++;
-	}
+	} ## end while ( defined( $self->{regexp}[$int] ) && $not_found)
 
 	return $found;
-}
+} ## end sub proc_line
 
 =head1 AUTHOR
 
